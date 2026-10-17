@@ -1,0 +1,45 @@
+{
+  "name": "reminder",
+  "version": "0.0.0",
+  "description": "Due dates and desktop reminders for tasks, with a TickTick-style date picker",
+  "keywords": [
+    "inkdrop",
+    "reminder",
+    "task",
+    "todo",
+    "notification"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oba18/inkdrop-reminder"
+  },
+  "bugs": {
+    "url": "https://github.com/oba18/inkdrop-reminder/issues"
+  },
+  "main": "./lib/index.js",
+  "scripts": {
+    "dev": "tsdown --watch",
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.14",
+    "@inkdropapp/types": "^0.1.1",
+    "@types/event-kit": "^2.4.4",
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "event-kit": "^2.5.3",
+    "inkdrop-model": "^3.0.1",
+    "tsdown": "^0.23.1",
+    "typescript": "^7.0.2"
+  },
+  "engines": {
+    "inkdrop": "^6.0.0"
+  },
+  "styleSheets": [
+    "reminder.css"
+  ]
+}

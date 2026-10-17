@@ -1,0 +1,381 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+
+import type { ViewContext } from './context'
+import {
+  DAY_MS,
+  addDays,
+  addMonths,
+  monthGrid,
+  parseLocal,
+  sameDay,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  toDateString,
+  toTimeString,
+  weekdayLabels,
+  WEEKDAYS
+} from './dates'
+import type { TaskItem as SourceItem } from '../scheduler'
+import { errorMessage, getConfig, getEnv, type ViewKind } from './env'
+import { compareItems, taskToItem, type CalItem } from './items'
+import { MonthView } from './month-view'
+import { calendarTasks, openTask, rescheduleTask, setTaskDone, type DayTime, type Due } from './tasks'
+import { TimeGrid } from './time-grid'
+import { YearView } from './year-view'
+
+/* ---- remembered UI state ---- */
+
+const UI_KEY = 'inkdrop-reminder:calendar:ui'
+
+interface UiState {
+  view: ViewKind
+  sidebar: boolean
+  showTasks: boolean
+  showDone: boolean
+}
+
+function loadUi(): UiState {
+  const base: UiState = { view: 'month', sidebar: true, showTasks: true, showDone: false }
+  try {
+    return { ...base, ...JSON.parse(localStorage.getItem(UI_KEY) ?? '{}') }
+  } catch {
+    return base
+  }
+}
+
+function saveUi(s: UiState) {
+  try {
+    localStorage.setItem(UI_KEY, JSON.stringify(s))
+  } catch {
+    // Not remembered.
+  }
+}
+
+/* ---- the calendar ---- */
+
+function rangeOf(view: ViewKind, date: Date, weekStartsOn: 0 | 1): { from: Date; to: Date } {
+  switch (view) {
+    case 'year':
+      return { from: new Date(date.getFullYear(), 0, 1), to: new Date(date.getFullYear() + 1, 0, 1) }
+    case 'month': {
+      const grid = monthGrid(date, weekStartsOn)
+      return { from: grid[0], to: addDays(grid[41], 1) }
+    }
+    case 'week': {
+      const from = startOfWeek(date, weekStartsOn)
+      return { from, to: addDays(from, 7) }
+    }
+    default:
+      return { from: startOfDay(date), to: addDays(startOfDay(date), 1) }
+  }
+}
+
+function step(view: ViewKind, date: Date, dir: 1 | -1): Date {
+  switch (view) {
+    case 'year':
+      return new Date(date.getFullYear() + dir, date.getMonth(), 1)
+    case 'month':
+      return addMonths(startOfMonth(date), dir)
+    case 'week':
+      return addDays(date, 7 * dir)
+    default:
+      return addDays(date, dir)
+  }
+}
+
+function title(view: ViewKind, date: Date, weekStartsOn: 0 | 1): string {
+  const y = date.getFullYear()
+  switch (view) {
+    case 'year':
+      return `${y}年`
+    case 'month':
+      return `${y}年${date.getMonth() + 1}月`
+    case 'week': {
+      const a = startOfWeek(date, weekStartsOn)
+      const b = addDays(a, 6)
+      if (a.getMonth() === b.getMonth()) return `${a.getFullYear()}年${a.getMonth() + 1}月`
+      if (a.getFullYear() === b.getFullYear()) return `${a.getFullYear()}年${a.getMonth() + 1}月 – ${b.getMonth() + 1}月`
+      return `${a.getFullYear()}年${a.getMonth() + 1}月 – ${b.getFullYear()}年${b.getMonth() + 1}月`
+    }
+    default:
+      return `${y}年${date.getMonth() + 1}月${date.getDate()}日 (${WEEKDAYS[date.getDay()]})`
+  }
+}
+
+const VIEWS: Array<{ value: ViewKind; label: string; key: string }> = [
+  { value: 'day', label: '日', key: 'D' },
+  { value: 'week', label: '週', key: 'W' },
+  { value: 'month', label: '月', key: 'M' },
+  { value: 'year', label: '年', key: 'Y' }
+]
+
+/** Theme colors of the editor area, so the calendar matches the theme. */
+function useEditorColors() {
+  const [colors, setColors] = useState<React.CSSProperties | undefined>()
+  useEffect(() => {
+    const read = () => {
+      const el = document.querySelector('.main-layout > .editor-layout') ?? document.querySelector('.editor-layout')
+      if (!el) return
+      const cs = getComputedStyle(el)
+      setColors({ background: cs.backgroundColor, color: cs.color, '--calendar-bg': cs.backgroundColor } as React.CSSProperties)
+    }
+    read()
+    const sub = getEnv().themes.onDidChangeActiveThemes(() => setTimeout(read, 100))
+    return () => sub.dispose()
+  }, [])
+  return colors
+}
+
+/** The Tasks view's calendar tab: tasks with a due date, as filtered by the Tasks view. */
+export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: () => void }> = ({ items, leave }) => {
+  const env = getEnv()
+  const cfg = getConfig()
+  const { weekStartsOn } = cfg
+  const [ui, setUiState] = useState<UiState>(loadUi)
+  const [date, setDate] = useState(() => startOfDay(new Date()))
+  const [today, setToday] = useState(() => startOfDay(new Date()))
+  const colors = useEditorColors()
+  const tasks = useMemo(() => calendarTasks(items), [items])
+
+  const setUi = (patch: Partial<UiState>) =>
+    setUiState(s => {
+      const next = { ...s, ...patch }
+      saveUi(next)
+      return next
+    })
+
+  const range = useMemo(() => rangeOf(ui.view, date, weekStartsOn), [ui.view, date, weekStartsOn])
+
+  // Midnight rollover.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const t = startOfDay(new Date())
+      setToday(prev => (prev.getTime() === t.getTime() ? prev : t))
+    }, 60_000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // Google Calendar-style keyboard shortcuts.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return
+      const t = e.target as HTMLElement
+      if (t.closest('input, textarea, select, [contenteditable="true"], .cm-editor')) return
+      const k = e.key.toLowerCase()
+      const views: Record<string, ViewKind> = { d: 'day', w: 'week', m: 'month', y: 'year' }
+      if (views[k]) setUi({ view: views[k] })
+      else if (k === 't') setDate(startOfDay(new Date()))
+      else if (k === 'j' || k === 'n' || e.key === 'ArrowRight') setDate(d => step(ui.view, d, 1))
+      else if (k === 'k' || k === 'p' || e.key === 'ArrowLeft') setDate(d => step(ui.view, d, -1))
+      else return
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [ui.view])
+
+  /* ---- items on screen, by day ---- */
+
+  const byDay = useMemo(() => {
+    const items: CalItem[] = []
+    if (ui.showTasks) for (const t of tasks) if (ui.showDone || !t.checked) items.push(taskToItem(t))
+    const map = new Map<string, CalItem[]>()
+    const from = range.from.getTime()
+    const to = range.to.getTime()
+    for (const item of items) {
+      if (item.end.getTime() <= from || item.start.getTime() >= to) continue
+      // Every day the item covers (end is exclusive), clipped to the range.
+      const first = Math.max(item.start.getTime(), from)
+      const last = Math.max(first, Math.min(item.end.getTime() - 1, to - 1))
+      for (let d = startOfDay(new Date(first)); d.getTime() <= last; d = addDays(d, 1)) {
+        const key = toDateString(d)
+        if (!map.has(key)) map.set(key, [])
+        map.get(key)!.push(item)
+      }
+    }
+    for (const list of map.values()) list.sort(compareItems)
+    return map
+  }, [tasks, ui.showTasks, ui.showDone, range.from.getTime(), range.to.getTime()])
+
+  /* ---- actions ---- */
+
+  const report = (what: string) => (err: unknown) => {
+    console.error(`[reminder] calendar: ${what}:`, err)
+    env.notifications.addError(what, { detail: errorMessage(err), dismissable: true })
+  }
+
+  const move = useCallback((item: CalItem, start: Date, allDay: boolean) => {
+    const due = item.task.due
+    let next: Due
+    if (due.start) {
+      // A period moves as a whole, by days, keeping its times.
+      const shift = Math.round((startOfDay(start).getTime() - startOfDay(item.start).getTime()) / DAY_MS)
+      const by = (d: DayTime): DayTime => ({ date: toDateString(addDays(parseLocal(d.date), shift)), time: d.time })
+      next = { ...by(due), start: by(due.start) }
+    } else {
+      next = { date: toDateString(start), time: allDay ? null : toTimeString(start), start: null }
+    }
+    rescheduleTask(item.task, next).catch(report('タスクの日付を変更できませんでした'))
+  }, [])
+
+  const ctx: ViewContext = {
+    today,
+    weekStartsOn,
+    itemsOn: day => byDay.get(toDateString(day)) ?? [],
+    open: item => {
+      leave()
+      openTask(item.task).catch(report('ノートを開けませんでした'))
+    },
+    toggleDone: item => {
+      setTaskDone(item.task, !item.task.checked).catch(report('タスクを更新できませんでした'))
+    },
+    move,
+    showDay: day => {
+      setDate(startOfDay(day))
+      setUi({ view: 'day' })
+    }
+  }
+
+  const days =
+    ui.view === 'week'
+      ? Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(date, weekStartsOn), i))
+      : [startOfDay(date)]
+
+  return (
+    <div className="calendar-view" style={colors}>
+      <div className="calendar-toolbar">
+        <button type="button" className="icon-button" title="サイドバーの表示を切り替え" onClick={() => setUi({ sidebar: !ui.sidebar })}>
+          ☰
+        </button>
+        <button type="button" className="today-button" title="今日 (T)" onClick={() => setDate(startOfDay(new Date()))}>
+          今日
+        </button>
+        <button type="button" className="icon-button" title="前へ (K)" onClick={() => setDate(d => step(ui.view, d, -1))}>
+          ‹
+        </button>
+        <button type="button" className="icon-button" title="次へ (J)" onClick={() => setDate(d => step(ui.view, d, 1))}>
+          ›
+        </button>
+        <h1>{title(ui.view, date, weekStartsOn)}</h1>
+        <span className="spacer" />
+        <div className="calendar-view-switch">
+          {VIEWS.map(v => (
+            <button
+              key={v.value}
+              type="button"
+              className={ui.view === v.value ? 'active' : ''}
+              title={`${v.label} (${v.key})`}
+              onClick={() => setUi({ view: v.value })}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="calendar-main">
+        {ui.sidebar && (
+          <Sidebar
+            date={date}
+            today={today}
+            weekStartsOn={weekStartsOn}
+            ui={ui}
+            setUi={setUi}
+            onPick={d => setDate(startOfDay(d))}
+          />
+        )}
+        <div className="calendar-content">
+          {ui.view === 'month' && <MonthView month={date} ctx={ctx} />}
+          {(ui.view === 'week' || ui.view === 'day') && <TimeGrid days={days} ctx={ctx} />}
+          {ui.view === 'year' && (
+            <YearView
+              year={date.getFullYear()}
+              ctx={ctx}
+              onShowMonth={m => {
+                setDate(m)
+                setUi({ view: 'month' })
+              }}
+            />
+          )}
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
+/* ---- sidebar: mini month + what to show ---- */
+
+const Sidebar: React.FC<{
+  date: Date
+  today: Date
+  weekStartsOn: 0 | 1
+  ui: UiState
+  setUi: (patch: Partial<UiState>) => void
+  onPick: (d: Date) => void
+}> = ({ date, today, weekStartsOn, ui, setUi, onPick }) => {
+  const [month, setMonth] = useState(() => startOfMonth(date))
+
+  useEffect(() => {
+    setMonth(startOfMonth(date))
+  }, [date.getFullYear(), date.getMonth()])
+
+  return (
+    <aside className="calendar-sidebar">
+      <div className="calendar-mini">
+        <div className="calendar-mini-header">
+          <span>
+            {month.getFullYear()}年{month.getMonth() + 1}月
+          </span>
+          <button type="button" onClick={() => setMonth(m => addMonths(m, -1))}>
+            ‹
+          </button>
+          <button type="button" onClick={() => setMonth(m => addMonths(m, 1))}>
+            ›
+          </button>
+        </div>
+        <div className="calendar-mini-grid">
+          {weekdayLabels(weekStartsOn).map(w => (
+            <span key={w} className="weekday">
+              {w}
+            </span>
+          ))}
+          {monthGrid(month, weekStartsOn).map(d => (
+            <button
+              key={toDateString(d)}
+              type="button"
+              className={[
+                'day',
+                d.getMonth() !== month.getMonth() && 'outside',
+                sameDay(d, today) && 'today',
+                sameDay(d, date) && 'selected'
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => onPick(d)}
+            >
+              {d.getDate()}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <section className="calendar-list">
+        <h3>Inkdrop</h3>
+        <label className="calendar-list-item" style={{ '--item-color': 'var(--calendar-task-color)' } as React.CSSProperties}>
+          <input type="checkbox" checked={ui.showTasks} onChange={e => setUi({ showTasks: e.target.checked })} />
+          <span className="box" />
+          <span className="name">期限付きのタスク</span>
+        </label>
+        <label className="calendar-list-item sub" style={{ '--item-color': 'var(--calendar-task-color)' } as React.CSSProperties}>
+          <input type="checkbox" checked={ui.showDone} disabled={!ui.showTasks} onChange={e => setUi({ showDone: e.target.checked })} />
+          <span className="box" />
+          <span className="name">完了したタスクも表示</span>
+        </label>
+      </section>
+
+    </aside>
+  )
+}
