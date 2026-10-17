@@ -1,7 +1,7 @@
 import type { Note } from 'inkdrop-model'
 
 import { getConfig, getEnv } from './env'
-import { applyCheckChanges, notifyReminder } from './notify'
+import { applyCheckChanges, isLocalEdit, notifyReminder } from './notify'
 import { cascadeChecks, dueDate, parseNoteDue, parseTasks, remindBase, type ParsedTask } from './parse'
 
 const CHECK_INTERVAL_MS = 30 * 1000
@@ -204,8 +204,11 @@ export class ReminderScheduler {
       noteDue,
       allDone
     })
+    // Automatic edits react only to changes made on this device; another device
+    // that also runs the plugin handles its own, and synced changes are left alone.
+    const local = !initial && isLocalEdit(note._id)
     // Keep parents and subtasks in step with what the user just checked.
-    if (!initial && prev && getConfig().linkSubtasks) {
+    if (local && prev && getConfig().linkSubtasks) {
       const changes = cascadeChecks(prev.tasks, tasks)
       if (changes.size) {
         applyCheckChanges(note._id, body, changes).catch(err =>
@@ -215,7 +218,7 @@ export class ReminderScheduler {
     }
     // A note seen for the first time: assume a completed one was all done.
     const prevAllDone = prev ? prev.allDone : note.status === 'completed'
-    if (!initial && prevAllDone !== allDone) {
+    if (local && prevAllDone !== allDone) {
       this.updateStatus(note, tasks, !!noteDue, allDone).catch(err =>
         console.error('[reminder] status update failed:', err)
       )

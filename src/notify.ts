@@ -12,6 +12,30 @@ import {
   type Priority
 } from './parse'
 
+/* ---- telling this device's edits from synced ones ---- */
+
+/** How long a mark from one of our own writes waits for the note's change event */
+const LOCAL_EDIT_MS = 10_000
+const localEdits = new Map<string, number>()
+
+/** Records that this window is about to change the note. */
+function markLocalEdit(noteId: string) {
+  localEdits.set(noteId, Date.now())
+}
+
+/**
+ * Whether a change to the note was made on this device: by one of the
+ * plugin's own actions, or in the editor of a focused window. A change that
+ * arrived by sync from another device is left alone, so two devices don't
+ * both react to it and write conflicting revisions.
+ */
+export function isLocalEdit(noteId: string): boolean {
+  const marked = localEdits.get(noteId)
+  if (marked !== undefined && Date.now() - marked < LOCAL_EDIT_MS) return true
+  localEdits.delete(noteId)
+  return getEnv().store.getState().editingNote?._id === noteId && document.hasFocus()
+}
+
 /** How long to wait for `onshow`/`onerror` before assuming the OS took it. */
 const SHOW_TIMEOUT_MS = 3000
 
@@ -168,6 +192,7 @@ export async function notifyReminder(
  * date, sets the note status to Completed.
  */
 export async function completeAlert(alert: ReminderAlert) {
+  markLocalEdit(alert.noteId)
   const env = getEnv()
   const isEditing = env.store.getState().editingNote?._id === alert.noteId
   if (!alert.task) {
@@ -208,6 +233,7 @@ export async function setTaskDue(noteId: string, task: Pick<ParsedTask, 'line' |
 
 /** Moves a note's own due date / period. */
 export async function setNoteDue(noteId: string, due: DueInfo) {
+  markLocalEdit(noteId)
   const env = getEnv()
   const view = env.store.getState().editingNote?._id === noteId ? env.getActiveEditor() : null
   if (view) {
@@ -235,6 +261,7 @@ async function rewriteTaskLine(
   task: Pick<ParsedTask, 'line' | 'text'>,
   rewrite: (m: RegExpExecArray) => string
 ) {
+  markLocalEdit(noteId)
   const env = getEnv()
   const { line, text } = task
   const mark = (raw: string) => rewrite(TASK_RE.exec(raw)!)
@@ -264,6 +291,7 @@ async function rewriteTaskLine(
  * taken back out of done).
  */
 export async function setNoteState(noteId: string, state: TaskState) {
+  markLocalEdit(noteId)
   const env = getEnv()
   const doing = state === 'doing'
   const closed = (status?: string) => status === 'completed' || status === 'dropped'
@@ -301,6 +329,7 @@ export async function setNoteState(noteId: string, state: TaskState) {
  * alone. Checking drops a task's `🏃`, as in `setTaskState`.
  */
 export async function applyCheckChanges(noteId: string, body: string, changes: Map<number, boolean>) {
+  markLocalEdit(noteId)
   const original = body.split('\n')
   const mark = (raw: string, checked: boolean) => {
     const m = TASK_RE.exec(raw)!
@@ -336,6 +365,7 @@ export type NoteStatus = 'none' | 'active' | 'onHold' | 'completed' | 'dropped'
 
 /** Sets a note's status, through the editor when the note is open there. */
 export async function setNoteStatus(noteId: string, status: NoteStatus) {
+  markLocalEdit(noteId)
   const env = getEnv()
   if (env.store.getState().editingNote?._id === noteId) {
     env.commands.dispatch(document.body, `editor:change-note-status-${status.toLowerCase()}` as any)
