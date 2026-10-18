@@ -483,7 +483,7 @@
     padding: 1px 8px;
     border-radius: 10px;
     background: var(--color-blue-500, #4772fa);
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
     font-weight: 600;
   }
 
@@ -680,7 +680,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     top: 0;
     width: 4px;
     height: 9px;
-    border: solid #fff;
+    border: solid var(--primary-button-text-color, #fff);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
@@ -1300,7 +1300,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     user-select: none;
     border-radius: 6px;
     background: var(--color-blue-500, #4772fa);
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
     font-size: 11px;
     cursor: pointer;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
@@ -1627,7 +1627,7 @@ body.reminder-gantt-resizing * {
 
   .day.today {
     background: var(--calendar-accent) !important;
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
     font-weight: 600;
   }
 }
@@ -1675,7 +1675,7 @@ body.reminder-gantt-resizing * {
     width: 4px;
     height: 8px;
     margin: 0 0 0 4px;
-    border: solid #fff;
+    border: solid var(--primary-button-text-color, #fff);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
@@ -1751,7 +1751,7 @@ body.reminder-gantt-resizing * {
 /* All-day and multi-day events: a filled bar, as in Google Calendar. */
 .calendar-chip.bar {
   background: var(--item-color);
-  color: #fff;
+  color: var(--primary-button-text-color, #fff);
 }
 
 .calendar-chip.bar:hover {
@@ -1876,7 +1876,7 @@ body.reminder-gantt-resizing * {
 
 .calendar-month-cell.today .date-number {
   background: var(--calendar-accent) !important;
-  color: #fff !important;
+  color: var(--primary-button-text-color, #fff) !important;
 }
 
 .calendar-month-items .more {
@@ -1961,7 +1961,7 @@ body.reminder-gantt-resizing * {
 
   .date-number {
     background: var(--calendar-accent) !important;
-    color: #fff !important;
+    color: var(--primary-button-text-color, #fff) !important;
   }
 }
 
@@ -2066,7 +2066,7 @@ body.reminder-gantt-resizing * {
   font-size: 12px;
   line-height: 1.3;
   background: var(--item-color);
-  color: #fff;
+  color: var(--primary-button-text-color, #fff);
   border: 1px solid color-mix(in srgb, var(--item-color) 70%, #000);
   cursor: pointer;
   z-index: 1;
@@ -2157,7 +2157,7 @@ body.reminder-gantt-resizing * {
 
   .calendar-mini-grid .day.l3 {
     background: color-mix(in srgb, var(--calendar-accent) 80%, transparent);
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
   }
 
   .calendar-mini-grid .day.done {
@@ -2172,10 +2172,10 @@ body.reminder-gantt-resizing * {
 /* A task's period (⏰start〜end) */
 .calendar-chip.task.bar {
   background: var(--item-color);
-  color: #fff;
+  color: var(--primary-button-text-color, #fff);
 
   input[type='checkbox'] {
-    accent-color: #fff;
+    accent-color: var(--primary-button-text-color, #fff);
   }
 }
 
@@ -2326,7 +2326,7 @@ span.subtask-toggle {
     top: 0;
     width: 3.5px;
     height: 8px;
-    border: solid #fff;
+    border: solid var(--primary-button-text-color, #fff);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
   }
