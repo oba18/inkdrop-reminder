@@ -1,6 +1,6 @@
 {
   "name": "reminder",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Due dates and desktop reminders for tasks, with a TickTick-style date picker",
   "keywords": [
     "inkdrop",
