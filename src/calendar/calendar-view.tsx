@@ -110,23 +110,6 @@ const VIEWS: Array<{ value: ViewKind; label: string; key: string }> = [
   { value: 'year', label: '年', key: 'Y' }
 ]
 
-/** Theme colors of the editor area, so the calendar matches the theme. */
-function useEditorColors() {
-  const [colors, setColors] = useState<React.CSSProperties | undefined>()
-  useEffect(() => {
-    const read = () => {
-      const el = document.querySelector('.main-layout > .editor-layout') ?? document.querySelector('.editor-layout')
-      if (!el) return
-      const cs = getComputedStyle(el)
-      setColors({ background: cs.backgroundColor, color: cs.color, '--calendar-bg': cs.backgroundColor } as React.CSSProperties)
-    }
-    read()
-    const sub = getEnv().themes.onDidChangeActiveThemes(() => setTimeout(read, 100))
-    return () => sub.dispose()
-  }, [])
-  return colors
-}
-
 /** The Tasks view's calendar tab: tasks with a due date, as filtered by the Tasks view. */
 export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: () => void }> = ({ items, leave }) => {
   const env = getEnv()
@@ -135,7 +118,6 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: () => void }>
   const [ui, setUiState] = useState<UiState>(loadUi)
   const [date, setDate] = useState(() => startOfDay(new Date()))
   const [today, setToday] = useState(() => startOfDay(new Date()))
-  const colors = useEditorColors()
   const tasks = useMemo(() => calendarTasks(items), [items])
 
   const setUi = (patch: Partial<UiState>) =>
@@ -244,7 +226,7 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: () => void }>
       : [startOfDay(date)]
 
   return (
-    <div className="calendar-view" style={colors}>
+    <div className="calendar-view">
       <div className="calendar-toolbar">
         <button type="button" className="icon-button" title="サイドバーの表示を切り替え" onClick={() => setUi({ sidebar: !ui.sidebar })}>
           ☰

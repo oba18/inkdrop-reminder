@@ -60,7 +60,7 @@
 
   button.active {
     background: var(--primary-color, #4772fa);
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
   }
 }
 
@@ -97,11 +97,11 @@
   }
 
   .day.sun {
-    color: #e5534b;
+    color: var(--color-red-500, #e5534b);
   }
 
   .day.sat {
-    color: #4772fa;
+    color: var(--color-blue-500, #4772fa);
   }
 
   .day.outside {
@@ -116,7 +116,7 @@
   .day.selected,
   .day.selected:hover {
     background: var(--primary-color, #4772fa);
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
   }
 }
 
@@ -164,7 +164,7 @@
 
   button.active {
     background: var(--primary-color, #4772fa);
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
     box-shadow: none;
   }
 }
@@ -207,14 +207,14 @@
   border-radius: 10px;
   font-size: 0.82em;
   line-height: 1.6;
-  background: rgba(71, 114, 250, 0.12);
-  color: #4772fa;
+  background: color-mix(in srgb, var(--color-blue-500, #4772fa) 12%, transparent);
+  color: var(--color-blue-500, #4772fa);
   white-space: nowrap;
 }
 
 .reminder-due-badge.overdue {
-  background: rgba(229, 83, 75, 0.14);
-  color: #e5534b;
+  background: color-mix(in srgb, var(--color-red-500, #e5534b) 14%, transparent);
+  color: var(--color-red-500, #e5534b);
 }
 
 .reminder-due-badge.done {
@@ -233,7 +233,7 @@
     padding: 3px 0;
     font-size: 12px;
     box-shadow: inset 0 0 0 1px rgba(128, 128, 128, 0.35);
-    color: #e0a526;
+    color: var(--color-yellow-500, #e0a526);
   }
 
   button:first-child {
@@ -242,8 +242,8 @@
 
   button.active,
   button.active:hover {
-    background: rgba(224, 165, 38, 0.2);
-    box-shadow: inset 0 0 0 1.5px #e0a526;
+    background: color-mix(in srgb, var(--color-yellow-500, #e0a526) 20%, transparent);
+    box-shadow: inset 0 0 0 1.5px var(--color-yellow-500, #e0a526);
   }
 }
 
@@ -271,7 +271,7 @@
   button.active,
   button.active:hover {
     background: var(--primary-color, #4772fa);
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
     box-shadow: none;
   }
 }
@@ -302,7 +302,7 @@
 
 .reminder-calendar-grid {
   .day.in-range {
-    background: rgba(71, 114, 250, 0.16);
+    background: color-mix(in srgb, var(--color-blue-500, #4772fa) 16%, transparent);
     border-radius: 4px !important;
   }
 }
@@ -330,7 +330,7 @@
   button.active,
   button.active:hover {
     background: var(--primary-color, #4772fa);
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
   }
 
   button:disabled {
@@ -373,13 +373,13 @@
   white-space: nowrap;
   padding: 2px 8px;
   border-radius: 10px;
-  background: rgba(71, 114, 250, 0.12);
-  color: #4772fa;
+  background: color-mix(in srgb, var(--color-blue-500, #4772fa) 12%, transparent);
+  color: var(--color-blue-500, #4772fa);
 }
 
 .reminder-note-due-button.overdue .reminder-note-due-label {
-  background: rgba(229, 83, 75, 0.14);
-  color: #e5534b;
+  background: color-mix(in srgb, var(--color-red-500, #e5534b) 14%, transparent);
+  color: var(--color-red-500, #e5534b);
 }
 
 .reminder-note-due-button.done .reminder-note-due-label {
@@ -441,16 +441,16 @@
   li {
     padding: 12px 14px;
     border-radius: 10px;
-    border-left: 4px solid #4772fa;
-    background: rgba(71, 114, 250, 0.08);
+    border-left: 4px solid var(--color-blue-500, #4772fa);
+    background: color-mix(in srgb, var(--color-blue-500, #4772fa) 8%, transparent);
   }
 
   li.overdue {
-    border-left-color: #e5534b;
-    background: rgba(229, 83, 75, 0.08);
+    border-left-color: var(--color-red-500, #e5534b);
+    background: color-mix(in srgb, var(--color-red-500, #e5534b) 8%, transparent);
 
     .badge {
-      background: #e5534b;
+      background: var(--color-red-500, #e5534b);
     }
   }
 
@@ -482,7 +482,7 @@
   .badge {
     padding: 1px 8px;
     border-radius: 10px;
-    background: #4772fa;
+    background: var(--color-blue-500, #4772fa);
     color: #fff;
     font-weight: 600;
   }
@@ -501,7 +501,7 @@
 
 .reminder-alert-error {
   margin-top: 8px;
-  color: #e5534b;
+  color: var(--color-red-500, #e5534b);
   font-size: 12px;
 }
 
@@ -512,7 +512,7 @@
 }
 
 @keyframes reminder-flash {
-  0%, 30% { background: rgba(255, 196, 0, 0.45); }
+  0%, 30% { background: color-mix(in srgb, var(--color-yellow-500, #ffc400) 45%, transparent); }
   100% { background: transparent; }
 }
 
@@ -528,6 +528,9 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
 }
 
 .reminder-tasks-view {
+  /* Painted like the editor, following the active theme. */
+  background: var(--editor-background);
+  color: var(--text-color);
   flex: 1;
   min-width: 0;
   height: 100%;
@@ -578,7 +581,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
 
   button.active {
     background: var(--primary-color, #4772fa);
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
   }
 }
 
@@ -597,7 +600,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
 
 .reminder-tasks-error {
   margin: 8px 28px 0;
-  color: #e5534b;
+  color: var(--color-red-500, #e5534b);
   font-size: 12px;
 }
 
@@ -624,7 +627,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
   }
 
   &.overdue h2 {
-    color: #e5534b;
+    color: var(--color-red-500, #e5534b);
     opacity: 1;
   }
 
@@ -701,13 +704,13 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     padding: 0 8px;
     border-radius: 10px;
     line-height: 1.7;
-    background: rgba(71, 114, 250, 0.12);
-    color: #4772fa;
+    background: color-mix(in srgb, var(--color-blue-500, #4772fa) 12%, transparent);
+    color: var(--color-blue-500, #4772fa);
   }
 
   .due.overdue {
-    background: rgba(229, 83, 75, 0.14);
-    color: #e5534b;
+    background: color-mix(in srgb, var(--color-red-500, #e5534b) 14%, transparent);
+    color: var(--color-red-500, #e5534b);
   }
 
   li.checked .due {
@@ -720,8 +723,8 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     padding: 0 8px;
     border-radius: 10px;
     line-height: 1.7;
-    background: rgba(240, 160, 40, 0.16);
-    color: #e0952a;
+    background: color-mix(in srgb, var(--color-orange-500, #e0952a) 16%, transparent);
+    color: var(--color-orange-500, #e0952a);
   }
 
   .note {
@@ -765,7 +768,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
 
   &.drag-over {
     border-color: var(--primary-color, #4772fa);
-    background: rgba(71, 114, 250, 0.08);
+    background: color-mix(in srgb, var(--color-blue-500, #4772fa) 8%, transparent);
   }
 
   h2 {
@@ -782,7 +785,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: #8a8a8a;
+      background: var(--color-neutral-500, #8a8a8a);
     }
 
     .count {
@@ -792,11 +795,11 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
   }
 
   &.doing h2::before {
-    background: #e0952a;
+    background: var(--color-orange-500, #e0952a);
   }
 
   &.done h2::before {
-    background: #57ab5a;
+    background: var(--color-green-500, #57ab5a);
   }
 }
 
@@ -871,13 +874,13 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     padding: 0 7px;
     border-radius: 10px;
     line-height: 1.7;
-    background: rgba(71, 114, 250, 0.12);
-    color: #4772fa;
+    background: color-mix(in srgb, var(--color-blue-500, #4772fa) 12%, transparent);
+    color: var(--color-blue-500, #4772fa);
   }
 
   .due.overdue {
-    background: rgba(229, 83, 75, 0.14);
-    color: #e5534b;
+    background: color-mix(in srgb, var(--color-red-500, #e5534b) 14%, transparent);
+    color: var(--color-red-500, #e5534b);
   }
 
   .note {
@@ -923,7 +926,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
 
     button:hover {
       background: var(--primary-color, #4772fa);
-      color: #fff;
+      color: var(--primary-button-text-color, #fff);
     }
   }
 
@@ -948,8 +951,8 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
   font-weight: 600;
   text-decoration: none;
   display: inline-block;
-  background: rgba(155, 110, 220, 0.18);
-  color: #a77de0;
+  background: color-mix(in srgb, var(--color-violet-500, #a77de0) 18%, transparent);
+  color: var(--color-violet-500, #a77de0);
 }
 
 /* ⏰ button at the end of task lines in the editor */
@@ -975,7 +978,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
 
 .reminder-line-due-button:hover {
   opacity: 1 !important;
-  background: rgba(71, 114, 250, 0.18);
+  background: color-mix(in srgb, var(--color-blue-500, #4772fa) 18%, transparent);
 }
 
 /* Preview: due badges open the picker; tasks without one get ⏰+ on hover */
@@ -997,8 +1000,8 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
   font-size: 0.8em;
   cursor: pointer;
   opacity: 0;
-  background: rgba(71, 114, 250, 0.12);
-  color: #4772fa;
+  background: color-mix(in srgb, var(--color-blue-500, #4772fa) 12%, transparent);
+  color: var(--color-blue-500, #4772fa);
   transition: opacity 0.1s;
 }
 
@@ -1030,13 +1033,13 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
   }
 
   button.on {
-    color: #e0a526;
+    color: var(--color-yellow-500, #e0a526);
     opacity: 1;
   }
 
   button:hover {
     opacity: 1;
-    color: #e0a526;
+    color: var(--color-yellow-500, #e0a526);
   }
 }
 
@@ -1063,6 +1066,10 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
 .reminder-gantt {
   --gantt-label-width: 300px;
   --gantt-day-width: 34px;
+  /* Sticky cells need an opaque background to hide what scrolls under them:
+     the theme's solid editor color, as Inkdrop uses for its sticky gutter. */
+  --gantt-solid-background: linear-gradient(var(--editor-gutter-background-solid-color, transparent), var(--editor-gutter-background-solid-color, transparent)),
+    rgb(from var(--editor-background) r g b / 1);
   flex: 1;
   min-height: 0;
   display: flex;
@@ -1134,6 +1141,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     position: sticky;
     left: 0;
     z-index: 2;
+    background: var(--gantt-solid-background);
     display: flex;
     align-items: flex-end;
     padding: 0 10px 6px 0;
@@ -1158,7 +1166,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
 
   .day.today .date {
     background: var(--primary-color, #4772fa);
-    color: #fff;
+    color: var(--primary-button-text-color, #fff);
     border-radius: 10px;
     padding: 0 5px;
   }
@@ -1196,8 +1204,8 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     }
 
     .today {
-      background: rgba(71, 114, 250, 0.1);
-      box-shadow: inset 2px 0 0 rgba(71, 114, 250, 0.6);
+      background: color-mix(in srgb, var(--color-blue-500, #4772fa) 10%, transparent);
+      box-shadow: inset 2px 0 0 color-mix(in srgb, var(--color-blue-500, #4772fa) 60%, transparent);
     }
   }
 
@@ -1221,6 +1229,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     position: sticky;
     left: 0;
     z-index: 1;
+    background: var(--gantt-solid-background);
     align-self: stretch;
     display: flex;
     flex-direction: column;
@@ -1255,8 +1264,8 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
       border-radius: 8px;
       font-size: 10px;
       font-weight: 600;
-      background: rgba(155, 110, 220, 0.18);
-      color: #a77de0;
+      background: color-mix(in srgb, var(--color-violet-500, #a77de0) 18%, transparent);
+      color: var(--color-violet-500, #a77de0);
     }
 
     .sub {
@@ -1290,7 +1299,7 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     touch-action: none;
     user-select: none;
     border-radius: 6px;
-    background: #4772fa;
+    background: var(--color-blue-500, #4772fa);
     color: #fff;
     font-size: 11px;
     cursor: pointer;
@@ -1302,16 +1311,16 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
   }
 
   .bar.doing {
-    background: #e0952a;
+    background: var(--color-orange-500, #e0952a);
   }
 
   .bar.done {
-    background: #57ab5a;
+    background: var(--color-green-500, #57ab5a);
     opacity: 0.55;
   }
 
   .bar.overdue {
-    background: #e5534b;
+    background: var(--color-red-500, #e5534b);
   }
 
   .bar.clipped-start {
@@ -1375,8 +1384,8 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     left: 0;
     padding: 2px 8px;
     border-radius: 6px;
-    background: rgba(20, 20, 20, 0.9);
-    color: #fff;
+    background: var(--tooltip-background, rgba(20, 20, 20, 0.9));
+    color: var(--text-color, #fff);
     font-size: 11px;
     white-space: nowrap;
     pointer-events: none;
@@ -1396,20 +1405,20 @@ body.reminder-tasks-active .sidebar-menu-item.active:not(.sidebar-menu-item-task
     background: transparent;
     box-shadow: none;
     overflow: visible;
-    color: #4772fa;
+    color: var(--color-blue-500, #4772fa);
     font-size: 16px;
   }
 
   .bar.milestone.doing {
-    color: #e0952a;
+    color: var(--color-orange-500, #e0952a);
   }
 
   .bar.milestone.done {
-    color: #57ab5a;
+    color: var(--color-green-500, #57ab5a);
   }
 
   .bar.milestone.overdue {
-    color: #e5534b;
+    color: var(--color-red-500, #e5534b);
   }
 }
 
@@ -1429,13 +1438,13 @@ body.reminder-gantt-resizing * {
 
 .calendar-view {
   --calendar-accent: var(--primary-color, #1a73e8);
-  --calendar-task-color: #9e69e8;
+  --calendar-task-color: var(--color-violet-500, #9e69e8);
   --calendar-line: rgba(128, 128, 128, 0.22);
   --calendar-line-strong: rgba(128, 128, 128, 0.35);
   --calendar-hover: rgba(128, 128, 128, 0.12);
   --calendar-muted: rgba(128, 128, 128, 0.9);
-  --calendar-sun: #e5534b;
-  --calendar-sat: #539bf5;
+  --calendar-sun: var(--color-red-500, #e5534b);
+  --calendar-sat: var(--color-blue-400, #539bf5);
 
   flex: 1;
   min-width: 0;
@@ -2031,7 +2040,7 @@ body.reminder-gantt-resizing * {
   left: -1px;
   right: 0;
   height: 2px;
-  background: #ea4335;
+  background: var(--color-red-500, #ea4335);
   z-index: 4;
   pointer-events: none;
 }
@@ -2044,7 +2053,7 @@ body.reminder-gantt-resizing * {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #ea4335;
+  background: var(--color-red-500, #ea4335);
 }
 
 /* Timed items in the hour grid */
@@ -2214,8 +2223,8 @@ span.subtask-toggle {
   white-space: nowrap;
 
   &.complete {
-    background: rgba(70, 170, 100, 0.16);
-    color: #3fa265;
+    background: color-mix(in srgb, var(--color-green-500, #3fa265) 16%, transparent);
+    color: var(--color-green-500, #3fa265);
   }
 }
 
@@ -2282,13 +2291,13 @@ span.subtask-toggle {
     padding: 0 6px;
     border-radius: 10px;
     line-height: 1.6;
-    background: rgba(71, 114, 250, 0.12);
-    color: #4772fa;
+    background: color-mix(in srgb, var(--color-blue-500, #4772fa) 12%, transparent);
+    color: var(--color-blue-500, #4772fa);
   }
 
   .due.overdue {
-    background: rgba(229, 83, 75, 0.14);
-    color: #e5534b;
+    background: color-mix(in srgb, var(--color-red-500, #e5534b) 14%, transparent);
+    color: var(--color-red-500, #e5534b);
   }
 
   input[type='checkbox'] {
@@ -2451,7 +2460,7 @@ span.subtask-toggle {
     }
 
     .stars-static {
-      color: #e0952a;
+      color: var(--color-orange-500, #e0952a);
       font-size: 12px;
       letter-spacing: -1px;
     }
@@ -2461,8 +2470,8 @@ span.subtask-toggle {
       padding: 0 7px;
       border-radius: 10px;
       line-height: 1.7;
-      background: rgba(240, 160, 40, 0.16);
-      color: #e0952a;
+      background: color-mix(in srgb, var(--color-orange-500, #e0952a) 16%, transparent);
+      color: var(--color-orange-500, #e0952a);
     }
 
     .due {
@@ -2470,13 +2479,13 @@ span.subtask-toggle {
       padding: 0 7px;
       border-radius: 10px;
       line-height: 1.7;
-      background: rgba(71, 114, 250, 0.12);
-      color: #4772fa;
+      background: color-mix(in srgb, var(--color-blue-500, #4772fa) 12%, transparent);
+      color: var(--color-blue-500, #4772fa);
     }
 
     .due.overdue {
-      background: rgba(229, 83, 75, 0.14);
-      color: #e5534b;
+      background: color-mix(in srgb, var(--color-red-500, #e5534b) 14%, transparent);
+      color: var(--color-red-500, #e5534b);
     }
 
     .progress-bar {
@@ -2489,7 +2498,7 @@ span.subtask-toggle {
       span {
         display: block;
         height: 100%;
-        background: #57ab5a;
+        background: var(--color-green-500, #57ab5a);
       }
     }
 

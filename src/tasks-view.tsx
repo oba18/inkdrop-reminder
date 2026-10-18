@@ -314,13 +314,6 @@ const TasksViewBody: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   // Re-group each minute so "overdue" stays current.
   const [now, setNow] = useState(() => new Date())
-  // The editor's colors come from the theme; borrow them for the list.
-  const [colors] = useState(() => {
-    const el = document.querySelector('.main-layout > .editor-layout')
-    if (!el) return undefined
-    const cs = getComputedStyle(el)
-    return { background: cs.backgroundColor, color: cs.color }
-  })
 
   useEffect(() => {
     modeListeners.add(setMode)
@@ -485,7 +478,7 @@ const TasksViewBody: React.FC = () => {
   const ctx: ItemContext = { books, now, defaultTime, lookup, open, move, prioritize, reschedule }
 
   return (
-    <div className={`reminder-tasks-view mode-${mode}`} style={colors}>
+    <div className={`reminder-tasks-view mode-${mode}`}>
       <div className="reminder-tasks-header">
         <h1>
           Tasks <span className="count">{total}</span>
@@ -559,7 +552,7 @@ const TasksViewBody: React.FC = () => {
       ) : mode === 'notes' ? (
         <NoteBoard items={visible} all={tasks} statuses={statuses} ctx={ctx} changeStatus={changeStatus} />
       ) : mode === 'gantt' ? (
-        <Gantt items={visible} ctx={ctx} colors={colors} />
+        <Gantt items={visible} ctx={ctx} />
       ) : mode === 'calendar' ? (
         <CalendarPanel items={visible} leave={() => setTasksViewActive(false)} />
       ) : (

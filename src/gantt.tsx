@@ -117,8 +117,7 @@ interface Row {
 export const Gantt: React.FC<{
   items: TaskItem[]
   ctx: ItemContext
-  colors?: { background: string; color: string }
-}> = ({ items, ctx, colors }) => {
+}> = ({ items, ctx }) => {
   const [from, setFrom] = useState(() => defaultFrom(ctx.now))
   const [showDone, setShowDone] = useState(false)
   const [drag, setDrag] = useState<Drag | null>(null)
@@ -185,8 +184,6 @@ export const Gantt: React.FC<{
     return { rows: nested, outside }
   }, [items, from, fromStr, toStr, showDone, drag, collapsed])
 
-  // Sticky cells need an opaque background to hide what scrolls under them.
-  const solid = colors?.background.replace(/rgba\((\d+),\s*(\d+),\s*(\d+),[^)]*\)/, 'rgb($1, $2, $3)')
   const grid = { gridTemplateColumns: `var(--gantt-label-width) repeat(${SPAN_DAYS}, var(--gantt-day-width))` }
 
   /**
@@ -274,7 +271,7 @@ export const Gantt: React.FC<{
       <div className="reminder-gantt-scroll" ref={scrollRef}>
         <div className="reminder-gantt-table" style={{ width: 'max-content' }}>
           <div className="reminder-gantt-header" style={grid}>
-            <div className="label-cell" style={{ background: solid }}>
+            <div className="label-cell">
               タスク
             </div>
             {days.map((d, i) => (
@@ -317,7 +314,6 @@ export const Gantt: React.FC<{
                 <div key={itemKey(r.item)} className="row" style={grid}>
                   <div
                     className="label-cell"
-                    style={{ background: solid }}
                     onClick={() => ctx.open(r.item)}
                     title="クリックで開く"
                   >
