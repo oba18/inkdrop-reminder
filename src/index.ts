@@ -78,6 +78,20 @@ class ReminderPlugin implements IInkdropPlugin {
       type: 'string',
       default: ''
     },
+    matrixImportantPriority: {
+      title: 'マトリクス: 「重要」とみなす ⭐ の数（以上）',
+      type: 'integer',
+      default: 2,
+      minimum: 1,
+      maximum: 3
+    },
+    matrixUrgentDays: {
+      title: 'マトリクス: 「緊急」とみなす期限（今日から何日以内）',
+      description: '期限切れのタスクも緊急です。0 で今日まで',
+      type: 'integer',
+      default: 2,
+      minimum: 0
+    },
     calendarWeekStartsOn: {
       title: 'カレンダー: 週の始まり',
       type: 'string',
@@ -155,6 +169,12 @@ class ReminderPlugin implements IInkdropPlugin {
         description: 'Reminder: カレンダーを表示',
         didDispatch: () => {
           if (env.isMainWindow) showTasks('calendar')
+        }
+      },
+      'reminder:show-matrix': {
+        description: 'Reminder: アイゼンハワーマトリクスを表示',
+        didDispatch: () => {
+          if (env.isMainWindow) showTasks('matrix')
         }
       }
     } as any)

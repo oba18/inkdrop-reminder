@@ -32,6 +32,10 @@ export interface ReminderConfig {
   notificationStyle: 'both' | 'desktop' | 'inapp'
   /** Notebook names whose tasks the task list leaves out */
   excludeNotebooks: string[]
+  /** Eisenhower matrix: the fewest ⭐ that count as important */
+  matrixImportantPriority: 1 | 2 | 3
+  /** Eisenhower matrix: due within this many days from today counts as urgent */
+  matrixUrgentDays: number
 }
 
 export function getConfig(): ReminderConfig {
@@ -48,7 +52,9 @@ export function getConfig(): ReminderConfig {
     excludeNotebooks: String(config.get('reminder.excludeNotebooks') ?? '')
       .split(',')
       .map((s: string) => s.trim())
-      .filter(Boolean)
+      .filter(Boolean),
+    matrixImportantPriority: Math.min(3, Math.max(1, config.get('reminder.matrixImportantPriority') ?? 2)) as 1 | 2 | 3,
+    matrixUrgentDays: Math.max(0, config.get('reminder.matrixUrgentDays') ?? 2)
   }
 }
 

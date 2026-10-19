@@ -4,6 +4,7 @@ import {
   TASK_RE,
   parseNoteDue,
   replaceDueToken,
+  setDueMarker,
   setDoingMarker,
   setPriorityMarker,
   stripMarkers,
@@ -229,6 +230,20 @@ export async function setTaskPriority(noteId: string, task: Pick<ParsedTask, 'li
 /** Moves a task's due date / period (its `🔔` setting stays). */
 export async function setTaskDue(noteId: string, task: Pick<ParsedTask, 'line' | 'text'>, due: DueInfo) {
   await rewriteTaskLine(noteId, task, m => `${m[1]}${m[2]}${m[3]}${replaceDueToken(m[4], due)}`)
+}
+
+/** Sets a task's `⭐` count and/or due date (added when it has none) in one write. */
+export async function setTaskMarkers(
+  noteId: string,
+  task: Pick<ParsedTask, 'line' | 'text'>,
+  { priority, due }: { priority?: Priority; due?: DueInfo }
+) {
+  await rewriteTaskLine(noteId, task, m => {
+    let content = m[4]
+    if (priority !== undefined) content = setPriorityMarker(content, priority)
+    if (due) content = setDueMarker(content, due)
+    return `${m[1]}${m[2]}${m[3]}${content}`
+  })
 }
 
 /** Moves a note's own due date / period. */

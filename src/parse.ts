@@ -181,6 +181,11 @@ export function replaceDueToken(content: string, due: Pick<DueInfo, 'date' | 'ti
   return content.replace(DUE_RE, formatDueToken(due))
 }
 
+/** Like `replaceDueToken`, adding the token at the end of a line that has none. */
+export function setDueMarker(content: string, due: Pick<DueInfo, 'date' | 'time' | 'start'>): string {
+  return DUE_RE.test(content) ? replaceDueToken(content, due) : `${content.trimEnd()} ${formatDueToken(due)}`
+}
+
 export function formatMarkers(due: DueInfo): string {
   let s = formatDueToken(due)
   if (due.reminder.off) s += ' 🔔off'

@@ -2,7 +2,7 @@
 
 **English** | [日本語](#日本語)
 
-Adds due dates and reminders to Inkdrop tasks and sends desktop notifications. It also gives you a task list, Kanban, Gantt and calendar views, subtasks, and a board of notes by status.
+Adds due dates and reminders to Inkdrop tasks and sends desktop notifications. It also gives you a task list, Kanban, Eisenhower matrix, Gantt and calendar views, subtasks, and a board of notes by status.
 
 ## Installation
 
@@ -14,7 +14,7 @@ ipm install reminder
 
 Works with the Inkdrop 6+ desktop app. The keyboard shortcuts are for macOS (on Windows / Linux, use the Plugins menu or the commands).
 
-The plugin's UI text is currently in Japanese. The main labels are: リスト (List), カンバン (Kanban), ノート (Notes), ガント (Gantt), カレンダー (Calendar), 期限 (due date), 未着手 / 進行中 / 完了 (To do / In progress / Done).
+The plugin's UI text is currently in Japanese. The main labels are: リスト (List), カンバン (Kanban), マトリクス (Eisenhower matrix), ノート (Notes), ガント (Gantt), カレンダー (Calendar), 期限 (due date), 未着手 / 進行中 / 完了 (To do / In progress / Done).
 
 ### Features that edit your notes automatically
 
@@ -154,6 +154,22 @@ Switch to Kanban at the top of Tasks to see three columns: **To do / In progress
 - The Done column shows 30 items at a time, starting from the most recently updated notes
 - The To do and In progress columns are sorted by priority, highest first
 
+### Eisenhower matrix
+
+Switch to マトリクス (Matrix) at the top of Tasks to sort open tasks into four quadrants, judged from the markers they already have (no new syntax):
+
+| | Urgent: overdue or due within N days | Not urgent: no due date or later |
+|---|---|---|
+| **Important: ⭐⭐ or more** | 今すぐやる (Do now) | 計画する (Plan) |
+| **Not important: fewer ⭐** | 任せる・手早く済ませる (Delegate / be quick) | やめる・後回し (Drop / later) |
+
+- Set the thresholds in the settings: "マトリクス: 「重要」とみなす ⭐ の数" (default 2) and "マトリクス: 「緊急」とみなす期限" (days from today, default 2; 0 = today only). A period counts by its end date
+- Dragging a card to another quadrant rewrites the task line:
+  - becoming important raises the ⭐ to the threshold; losing it lowers them to one below
+  - becoming urgent moves the due date to today (an all-day one is added if there was none); losing it moves the due date to the first day after the urgent window. A period keeps its length
+- Subtasks are a checklist on the parent's card, as on the Kanban. A note's own due date (which has no ⭐) is not shown
+- ✓ 完了 on hover completes the task. Also available as the command `reminder:show-matrix`
+
 ### Gantt
 
 Switch to Gantt at the top of Tasks to see tasks (and notes) with a due date or period on a daily timeline.
@@ -208,7 +224,7 @@ MIT
 
 [English](#reminder) | **日本語**
 
-Inkdrop のタスクに期限とリマインダーを付けて、デスクトップに通知するプラグインです。タスクの一覧・カンバン・ガント・カレンダー、小タスク、ノートのステータス別のボードもあります。
+Inkdrop のタスクに期限とリマインダーを付けて、デスクトップに通知するプラグインです。タスクの一覧・カンバン・アイゼンハワーマトリクス・ガント・カレンダー、小タスク、ノートのステータス別のボードもあります。
 
 ## インストール
 
@@ -356,6 +372,22 @@ Tasks の上部で「カンバン」に切り替えると、**未着手 / 進行
 - カードをクリックするとタスクの行へ、カード下のノート名をクリックするとノートを開きます
 - 完了の列は、更新が新しいノートのものから30件ずつ表示します
 - 未着手・進行中の列は優先度の高い順です
+
+### アイゼンハワーマトリクス
+
+Tasks の上部で「マトリクス」に切り替えると、未完了のタスクを4つの象限に分けて表示します。判定は今ある記法だけで行います（新しい記法は不要です）。
+
+| | 緊急: 期限切れ・N日以内 | 緊急でない: 期限なし・それより先 |
+|---|---|---|
+| **重要: ⭐⭐ 以上** | 今すぐやる | 計画する |
+| **重要でない: それ未満** | 任せる・手早く済ませる | やめる・後回し |
+
+- しきい値は設定の「マトリクス: 「重要」とみなす ⭐ の数」（既定 2）と「マトリクス: 「緊急」とみなす期限」（今日から何日以内、既定 2、0 で今日まで）で変えられます。期間は終わりの日で判定します
+- カードを別の象限にドラッグすると、タスク行が書き換わります
+  - 重要へ: ⭐ をしきい値まで上げる / 重要でないへ: しきい値より1つ少なくする
+  - 緊急へ: 期限を今日にする（期限がなければ終日の期限を付ける）/ 緊急でないへ: 期限を緊急の範囲の翌日にずらす。期間は長さを保ったまま動きます
+- 小タスクはカンバンと同じく親カードの中のチェックリストになります。⭐ を持たないノートの期限は出ません
+- カードにマウスを乗せると出る「✓ 完了」で完了にできます。コマンド `reminder:show-matrix` でも開けます
 
 ### ガント
 

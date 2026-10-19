@@ -19,6 +19,7 @@
             { "label": "ノートの期限とリマインダーを設定…", "command": "reminder:set-note-due" },
             { "label": "タスクの一覧を表示", "command": "reminder:show-tasks" },
             { "label": "カレンダーを表示", "command": "reminder:show-calendar" },
+            { "label": "アイゼンハワーマトリクスを表示", "command": "reminder:show-matrix" },
             { "label": "登録中のリマインダーを表示", "command": "reminder:show-status" },
             { "label": "テスト通知を送る", "command": "reminder:test-notification" }
           ]

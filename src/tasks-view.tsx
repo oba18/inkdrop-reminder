@@ -6,6 +6,7 @@ import {
   setNoteDue,
   setNoteState,
   setTaskDue,
+  setTaskMarkers,
   setTaskPriority,
   setTaskState,
   setNoteStatus,
@@ -17,6 +18,7 @@ import { dueDate, toDateString, type DayTime, type DueInfo, type Priority } from
 import { getScheduler, type TaskItem } from './scheduler'
 import { CalendarPanel } from './calendar/calendar-view'
 import { Gantt } from './gantt'
+import { Matrix } from './matrix'
 import { NoteBoard } from './note-board'
 import { flatten, makeLookup, nest, parentOf, subtasksOf, type TaskLookup, type TaskNode } from './subtasks'
 
@@ -162,7 +164,7 @@ SideBarMenuItemTasks.displayName = 'ReminderSideBarMenuItemTasks'
 /* ---- the task list ---- */
 
 type Filter = 'open' | 'done' | 'all'
-export type Mode = 'list' | 'kanban' | 'notes' | 'gantt' | 'calendar'
+export type Mode = 'list' | 'kanban' | 'matrix' | 'notes' | 'gantt' | 'calendar'
 type GroupBy = 'due' | 'status' | 'note'
 
 const GROUP_BYS: Array<{ value: GroupBy; label: string }> = [
@@ -179,7 +181,7 @@ const MODE_STORAGE_KEY = 'inkdrop-reminder:tasks-mode'
 function loadMode(): Mode {
   try {
     const saved = localStorage.getItem(MODE_STORAGE_KEY)
-    return saved === 'kanban' || saved === 'notes' || saved === 'gantt' || saved === 'calendar' ? saved : 'list'
+    return saved === 'kanban' || saved === 'matrix' || saved === 'notes' || saved === 'gantt' || saved === 'calendar' ? saved : 'list'
   } catch {
     return 'list'
   }
@@ -349,7 +351,23 @@ const TasksViewBody: React.FC = () => {
     }
   }, [])
 
-  const { defaultTime } = getConfig()
+  // Re-sort the matrix as soon as its thresholds change in the settings.
+  const [, setConfigVersion] = useState(0)
+  useEffect(() => {
+    const bump = () => setConfigVersion(n => n + 1)
+    const subs = ['reminder.matrixImportantPriority', 'reminder.matrixUrgentDays'].map(key =>
+      env.config.onDidChange(key, bump)
+    )
+    return () => {
+      for (const sub of subs) sub.dispose()
+    }
+  }, [])
+
+  const { defaultTime, matrixImportantPriority, matrixUrgentDays } = getConfig()
+  const matrixRule = useMemo(
+    () => ({ importantPriority: matrixImportantPriority, urgentDays: matrixUrgentDays }),
+    [matrixImportantPriority, matrixUrgentDays]
+  )
   const books: Record<string, { name: string }> = env.store.getState().books?.hash ?? {}
 
   const lookup = useMemo(() => makeLookup(tasks), [tasks])
@@ -417,7 +435,7 @@ const TasksViewBody: React.FC = () => {
               .filter(t => !t.task.checked || statusOf(t) === 'completed' || statusOf(t) === 'dropped')
               .map(t => t.noteId)
           ).size
-        : visible.filter(t => !t.task.checked).length
+        : visible.filter(t => !t.task.checked && (mode !== 'matrix' || t.kind === 'task')).length
 
   const changeMode = (next: Mode) => {
     setMode(next)
@@ -461,6 +479,16 @@ const TasksViewBody: React.FC = () => {
       setError(null)
     } catch (err) {
       console.error('[reminder] reschedule failed:', err)
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const updateMarkers = async (item: TaskItem, changes: { priority?: Priority; due?: DueInfo }) => {
+    try {
+      await setTaskMarkers(item.noteId, item.task, changes)
+      setError(null)
+    } catch (err) {
+      console.error('[reminder] matrix move failed:', err)
       setError(err instanceof Error ? err.message : String(err))
     }
   }
@@ -549,6 +577,8 @@ const TasksViewBody: React.FC = () => {
         <div className="reminder-tasks-empty">読み込み中…</div>
       ) : mode === 'kanban' ? (
         <Kanban items={visible} ctx={ctx} />
+      ) : mode === 'matrix' ? (
+        <Matrix items={visible} ctx={ctx} rule={matrixRule} update={updateMarkers} />
       ) : mode === 'notes' ? (
         <NoteBoard items={visible} all={tasks} statuses={statuses} ctx={ctx} changeStatus={changeStatus} />
       ) : mode === 'gantt' ? (
@@ -644,6 +674,7 @@ const NoteGroupTitle: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item, 
 const MODES: Array<{ value: Mode; label: string }> = [
   { value: 'list', label: 'リスト' },
   { value: 'kanban', label: 'カンバン' },
+  { value: 'matrix', label: 'マトリクス' },
   { value: 'notes', label: 'ノート' },
   { value: 'gantt', label: 'ガント' },
   { value: 'calendar', label: 'カレンダー' }
@@ -722,13 +753,13 @@ export const ParentLabel: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ it
   return parent ? <span className="subtask-parent">↳ {itemTitle(parent)}</span> : null
 }
 
-const DueBadge: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item, ctx }) => {
+export const DueBadge: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item, ctx }) => {
   if (!item.task.due) return null
   const bucket = bucketOf(item, ctx.now, ctx.defaultTime)
   return <span className={`due ${bucket}`}>⏰ {formatDue(item)}</span>
 }
 
-const NoteLabel: React.FC<{ item: TaskItem; ctx: ItemContext; link?: boolean }> = ({ item, ctx, link }) => (
+export const NoteLabel: React.FC<{ item: TaskItem; ctx: ItemContext; link?: boolean }> = ({ item, ctx, link }) => (
   <span
     className={`note${link ? ' link' : ''}`}
     title={link ? 'クリックでノートを開く' : undefined}
@@ -876,7 +907,7 @@ const Kanban: React.FC<{ items: TaskItem[]; ctx: ItemContext }> = ({ items, ctx 
 }
 
 /** A card's subtasks (and theirs, indented): check them off, click one to jump to it. */
-const SubtaskChecklist: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item, ctx }) => {
+export const SubtaskChecklist: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item, ctx }) => {
   const subs = subtasksOf(item, ctx.lookup)
   if (!subs.length) return null
   return (
