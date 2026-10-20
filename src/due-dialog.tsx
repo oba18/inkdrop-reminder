@@ -3,31 +3,26 @@ import type { EditorView } from '@codemirror/view'
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { getConfig, getEnv, saveEditingNote } from './env'
+import { setNoteSchedule, setTaskSchedule } from './notify'
 import {
-  DOING_RE,
   TASK_RE,
-  formatMarkers,
   formatMinutesJa,
+  noteDueEdit,
   parseDueInfo,
   parseNoteDue,
   parsePriority,
+  setScheduleMarkers,
   stripMarkers,
   toDateString,
   type DueInfo,
   type Priority
 } from './parse'
+import type { TaskItem } from './scheduler'
 
 export type ReminderCommands = {
   'reminder:set-due': undefined
   'reminder:set-note-due': undefined
   'reminder:set-task-due': { line: number; text?: string }
-}
-
-interface Target {
-  view: EditorView
-  /** `task`: the line at `line`; `note`: the note's own due line */
-  mode: 'task' | 'note'
-  line: number
 }
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
@@ -70,18 +65,13 @@ function shortDate(ds: string) {
 }
 
 /** Rewrites one editor line as a task carrying `due` (or none) and `priority`. */
-function applyToLine({ view, line }: Target, due: DueInfo | null, priority: Priority) {
+function applyToLine(view: EditorView, line: number, due: DueInfo | null, priority: Priority) {
   const docLine = view.state.doc.line(line)
   const text = docLine.text
   const m = TASK_RE.exec(text)
-  const stars = priority ? ` ${'⭐'.repeat(priority)}` : ''
-  const markers = due ? ` ${formatMarkers(due)}` : ''
   let next: string
   if (m) {
-    const body = stripMarkers(m[4])
-    // Keep the in-progress marker the line already had.
-    const doing = DOING_RE.test(m[4]) ? ' 🏃' : ''
-    next = `${m[1]}${m[2]}] ${body}${doing}${stars}${markers}`
+    next = `${m[1]}${m[2]}${m[3]}${setScheduleMarkers(m[4], due, priority)}`
   } else if (!due && !priority) {
     return
   } else {
@@ -89,47 +79,12 @@ function applyToLine({ view, line }: Target, due: DueInfo | null, priority: Prio
     const lm = /^(\s*)(?:([-*+]|\d+[.)])\s+)?(.*)$/.exec(text)!
     const bullet = lm[2] ?? '-'
     const body = stripMarkers(lm[3])
-    next = `${lm[1]}${bullet} [ ] ${body}${stars}${markers}`.replace(/\[ \] {2,}/, '[ ] ')
+    next = `${lm[1]}${bullet} [ ] ${setScheduleMarkers(body, due, priority)}`.replace(/\[ \] {2,}/, '[ ] ')
   }
   view.dispatch({
     changes: { from: docLine.from, to: docLine.to, insert: next },
     selection: { anchor: docLine.from + next.length }
   })
-}
-
-/**
- * Writes the note-level due line (`⏰… 🔔…` alone on a line), replacing an
- * existing one or inserting it at the top of the body; `null` removes it.
- */
-function applyToNote({ view }: Target, due: DueInfo | null) {
-  const doc = view.state.doc
-  const existing = parseNoteDue(doc.toString())
-  if (existing) {
-    const line = doc.line(existing.line + 1)
-    if (due) {
-      const doing = existing.doing ? ' 🏃' : ''
-      view.dispatch({ changes: { from: line.from, to: line.to, insert: `${formatMarkers(due)}${doing}` } })
-      return
-    }
-    // Remove the line, plus the blank line we put after it.
-    let to = Math.min(line.to + 1, doc.length)
-    if (line.number < doc.lines && doc.line(line.number + 1).text === '') {
-      to = Math.min(doc.line(line.number + 1).to + 1, doc.length)
-    }
-    view.dispatch({ changes: { from: line.from, to } })
-  } else if (due) {
-    const insert = doc.length ? `${formatMarkers(due)}\n\n` : formatMarkers(due)
-    view.dispatch({ changes: { from: 0, insert } })
-  }
-}
-
-function apply(target: Target, due: DueInfo | null, priority: Priority) {
-  if (target.mode === 'note') applyToNote(target, due)
-  else applyToLine(target, due, priority)
-  // Save now so the scheduler sees the new due date right away.
-  saveEditingNote(target.view.state.doc.toString()).catch(err =>
-    console.error('[reminder] save failed:', err)
-  )
 }
 
 /** The task the picker can work on: a task line, or a plain line to turn into one. */
@@ -141,9 +96,64 @@ interface TaskTarget {
   isTask: boolean
 }
 
+/**
+ * What the open picker edits: a line or the due line of the note in the
+ * editor, or a task / note's due date from the Tasks view.
+ */
 interface Session {
-  view: EditorView
-  task: TaskTarget | null
+  /** The task it can set, if any */
+  task: Pick<TaskTarget, 'label' | 'isTask'> | null
+  noteTitle: string
+  /** What the target switch offers; a single one hides it */
+  modes: Mode[]
+  read(mode: Mode): { due: DueInfo | null; priority: Priority }
+  write(mode: Mode, due: DueInfo | null, priority: Priority): Promise<void>
+  /** Runs on close, e.g. to give the editor its focus back */
+  restore?(): void
+}
+
+function editorSession(view: EditorView, task: TaskTarget | null, noteTitle: string): Session {
+  return {
+    task,
+    noteTitle,
+    modes: ['task', 'note'],
+    read: mode => existing(view, mode, task),
+    write: async (mode, due, priority) => {
+      if (mode === 'note' || !task) {
+        const edit = noteDueEdit(view.state.doc.toString(), due)
+        if (edit) view.dispatch({ changes: edit })
+      } else {
+        applyToLine(view, task.line, due, priority)
+      }
+      // Save now so the scheduler sees the new due date right away.
+      await saveEditingNote(view.state.doc.toString())
+    },
+    // In preview mode the editor is hidden; leave the focus alone then.
+    restore: () => {
+      if (view.dom.offsetParent) view.focus()
+    }
+  }
+}
+
+/** A task (or a note's own due date) from the Tasks view, written back without the editor. */
+function itemSession(item: TaskItem): Session {
+  const mode: Mode = item.kind === 'note' ? 'note' : 'task'
+  return {
+    task: mode === 'task' ? { label: stripMarkers(item.task.text).trim(), isTask: true } : null,
+    noteTitle: item.noteTitle,
+    modes: [mode],
+    read: () => ({ due: item.task.due, priority: mode === 'task' ? item.task.priority : 0 }),
+    write: (_, due, priority) =>
+      mode === 'note' ? setNoteSchedule(item.noteId, due) : setTaskSchedule(item.noteId, item.task, due, priority)
+  }
+}
+
+let openSession: ((session: Session) => void) | null = null
+
+/** Opens the picker on a task or note's due date from the Tasks view. */
+export function editItemDue(item: TaskItem) {
+  if (openSession) openSession(itemSession(item))
+  else getEnv().notifications.addWarning('期限の設定画面を開けませんでした')
 }
 
 function taskTargetAt(view: EditorView, line: number): TaskTarget | null {
@@ -232,16 +242,9 @@ export const DueDialog: React.FC = () => {
   const [priority, setPriority] = useState<Priority>(0)
   const [month, setMonth] = useState(() => new Date())
   const [hadDue, setHadDue] = useState(false)
-  const [noteTitle, setNoteTitle] = useState('')
 
-  const target: Target | null = session
-    ? mode === 'note' || !session.task
-      ? { view: session.view, mode: 'note', line: 0 }
-      : { view: session.view, mode: 'task', line: session.task.line }
-    : null
-
-  const load = useCallback((view: EditorView, nextMode: Mode, task: TaskTarget | null) => {
-    const { due, priority } = existing(view, nextMode, task)
+  const load = useCallback((s: Session, nextMode: Mode) => {
+    const { due, priority } = s.read(nextMode)
     const today = toDateString(new Date())
     const shown = due?.start?.date ?? due?.date
     const base = shown ? new Date(`${shown}T00:00`) : new Date()
@@ -259,19 +262,19 @@ export const DueDialog: React.FC = () => {
   }, [])
 
   const close = useCallback(() => {
-    // In preview mode the editor is hidden; leave the focus alone then.
-    if (session?.view.dom.offsetParent) session.view.focus()
+    session?.restore?.()
     setSession(null)
   }, [session])
 
   useEffect(() => {
     const env = getEnv()
-    const open = (view: EditorView, prefer: Mode, task: TaskTarget | null) => {
-      const nextMode = prefer === 'task' && task ? 'task' : 'note'
-      load(view, nextMode, task)
-      setNoteTitle(env.store.getState().editingNote?.title ?? '')
-      setSession({ view, task })
+    const show = (s: Session, prefer: Mode = s.modes[0]) => {
+      const nextMode = prefer === 'task' && s.task ? 'task' : 'note'
+      load(s, s.modes.includes(nextMode) ? nextMode : s.modes[0])
+      setSession(s)
     }
+    const open = (view: EditorView, prefer: Mode, task: TaskTarget | null) =>
+      show(editorSession(view, task, env.store.getState().editingNote?.title ?? ''), prefer)
     const editor = () => {
       const view = env.getActiveEditor()
       if (!view) env.notifications.addWarning('ノートを開いてください')
@@ -311,12 +314,16 @@ export const DueDialog: React.FC = () => {
         }
       }
     } as any)
-    return () => sub.dispose()
+    openSession = show
+    return () => {
+      sub.dispose()
+      if (openSession === show) openSession = null
+    }
   }, [load])
 
   const switchMode = (next: Mode) => {
     if (!session || next === mode || (next === 'task' && !session.task)) return
-    load(session.view, next, session.task)
+    load(session, next)
   }
 
   const changeKind = (next: Kind) => {
@@ -369,20 +376,20 @@ export const DueDialog: React.FC = () => {
     return { date: overrideDate ?? date, time, start: null, reminder }
   }
 
-  const submit = (overrideDate?: string) => {
-    if (!target) return
-    try {
-      apply(target, buildDue(overrideDate), priority)
-    } catch (err) {
+  const write = (due: DueInfo | null) => {
+    if (!session) return
+    session.write(mode, due, priority).catch(err => {
       console.error('[reminder] failed to apply due date:', err)
-    }
+      getEnv().notifications.addError('期限を保存できませんでした', {
+        detail: err instanceof Error ? err.message : String(err)
+      })
+    })
     close()
   }
 
-  const clear = () => {
-    if (target) apply(target, null, priority)
-    close()
-  }
+  const submit = (overrideDate?: string) => write(buildDue(overrideDate))
+
+  const clear = () => write(null)
 
   const today = useMemo(() => new Date(), [session])
   const quickPicks =
@@ -427,28 +434,30 @@ export const DueDialog: React.FC = () => {
             }
           }}
         >
-          <div className="reminder-target">
-            <button
-              type="button"
-              className={mode === 'task' ? 'active' : ''}
-              disabled={!task}
-              title={task ? 'このタスクの期限を設定' : 'タスクの行にカーソルを置くか、タスクの ⏰ ボタンから開くと選べます'}
-              onClick={() => switchMode('task')}
-            >
-              ☑️ タスク
-            </button>
-            <button
-              type="button"
-              className={mode === 'note' ? 'active' : ''}
-              title="このノート自体の期限を設定"
-              onClick={() => switchMode('note')}
-            >
-              📒 ノート
-            </button>
-          </div>
+          {session && session.modes.length > 1 && (
+            <div className="reminder-target">
+              <button
+                type="button"
+                className={mode === 'task' ? 'active' : ''}
+                disabled={!task}
+                title={task ? 'このタスクの期限を設定' : 'タスクの行にカーソルを置くか、タスクの ⏰ ボタンから開くと選べます'}
+                onClick={() => switchMode('task')}
+              >
+                ☑️ タスク
+              </button>
+              <button
+                type="button"
+                className={mode === 'note' ? 'active' : ''}
+                title="このノート自体の期限を設定"
+                onClick={() => switchMode('note')}
+              >
+                📒 ノート
+              </button>
+            </div>
+          )}
           <div className="reminder-title">
             <span className="name">
-              {mode === 'task' && task ? task.label : noteTitle || '無題のノート'}
+              {mode === 'task' && task ? task.label : session?.noteTitle || '無題のノート'}
             </span>
             {mode === 'task' && task && !task.isTask && (
               <span className="kind">この行をタスクにして期限を付けます</span>

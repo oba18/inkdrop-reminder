@@ -186,6 +186,37 @@ export function setDueMarker(content: string, due: Pick<DueInfo, 'date' | 'time'
   return DUE_RE.test(content) ? replaceDueToken(content, due) : `${content.trimEnd()} ${formatDueToken(due)}`
 }
 
+/**
+ * Rewrites a task's `⭐` and `⏰…🔔…` markers from scratch (`null` = no due
+ * date); the text and `🏃` stay.
+ */
+export function setScheduleMarkers(content: string, due: DueInfo | null, priority: Priority): string {
+  const without = content.replace(new RegExp(`\\s*(?:${DUE_RE.source}|${REMIND_RE.source})`, 'gu'), '')
+  const starred = setPriorityMarker(without, priority).trimEnd()
+  return due ? `${starred} ${formatMarkers(due)}` : starred
+}
+
+/**
+ * The edit that sets a note's own due line to `due`: replaces the existing
+ * line (keeping its `🏃`), inserts one at the top, or with `null` removes it
+ * along with the blank line after it. Character offsets into `body`; `null`
+ * when there is nothing to do.
+ */
+export function noteDueEdit(body: string, due: DueInfo | null): { from: number; to: number; insert: string } | null {
+  const existing = parseNoteDue(body)
+  if (!existing) {
+    if (!due) return null
+    return { from: 0, to: 0, insert: body.length ? `${formatMarkers(due)}\n\n` : formatMarkers(due) }
+  }
+  const lines = body.split('\n')
+  const from = lines.slice(0, existing.line).reduce((n, l) => n + l.length + 1, 0)
+  const lineEnd = from + lines[existing.line].length
+  if (due) return { from, to: lineEnd, insert: `${formatMarkers(due)}${existing.doing ? ' 🏃' : ''}` }
+  let to = Math.min(lineEnd + 1, body.length)
+  if (lines[existing.line + 1] === '') to = Math.min(to + 1, body.length)
+  return { from, to, insert: '' }
+}
+
 export function formatMarkers(due: DueInfo): string {
   let s = formatDueToken(due)
   if (due.reminder.off) s += ' 🔔off'

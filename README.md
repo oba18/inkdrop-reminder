@@ -120,11 +120,12 @@ A task indented under another task becomes its subtask (even with plain list ite
 
 - Grouped by due date: overdue / today / tomorrow / within 7 days / later / no due date (no due date is sorted by most recently updated note)
 - Switch between open / done / all, and search by task or note name
-- Click a checkbox to toggle a task. Click a row to open the note at that task's line
-- Selecting another sidebar item or opening a note returns to the normal view
+- Click a checkbox to toggle a task. Click a row to open the note at that task's line (the note list switches to the note's notebook)
+- Selecting another sidebar item or opening a note returns to the normal view. Back (⌘← or the ← button) from a note opened here returns to Tasks, and Back from Tasks returns to what was showing before it
 - The number in the sidebar is the count of open tasks
 - Exclude notebooks such as templates with the "notebooks to hide from the task list and Kanban" setting (タスク一覧・カンバンに出さないノートブック, comma-separated)
 - Click the ☆ on a row or card to change the priority (click the same star again to clear it)
+- Click the ⏰ due date on a row or card (list, Kanban, matrix) to change it in the due date picker: date, time, period, reminder and priority, or remove it. On an open task without one, "⏰＋" appears on hover to add one
 
 ### Note status
 
@@ -338,12 +339,13 @@ Inkdrop 6 以降のデスクトップ版で動きます。ショートカット�
 
 - 期限で「期限切れ / 今日 / 明日 / 7日以内 / それ以降 / 期限なし」に分けて表示（期限なしは更新が新しいノートから）
 - 未完了 / 完了 / すべて の切り替えと、タスク名・ノート名での検索
-- チェックボックスで完了・未完了を切り替え。行をクリックするとそのノートを開いてタスクの行へ移動
-- 他のサイドバー項目を選ぶか、ノートを開くと通常の表示に戻ります
+- チェックボックスで完了・未完了を切り替え。行をクリックするとそのノートを開いてタスクの行へ移動（ノート一覧もそのノートのノートブックに切り替わります）
+- 他のサイドバー項目を選ぶか、ノートを開くと通常の表示に戻ります。ここから開いたノートで「戻る」（⌘← や ← ボタン）を押すと Tasks に戻り、Tasks で「戻る」を押すと開く前の表示に戻ります
 - サイドバーの数字は未完了のタスク数です
 - 設定の「タスク一覧・カンバンに出さないノートブック」で、テンプレート用などのノートブックを除外できます（カンマ区切り）
 
 - 行や カードの ☆ をクリックすると優先度を変えられます（同じ星をもう一度で解除）
+- 行やカードの ⏰ 期限（リスト・カンバン・マトリクス）をクリックすると、期限の設定画面で日付・時刻・期間・通知・優先度を変更したり、期限を削除したりできます。期限のない未完了タスクには、マウスを乗せると「⏰＋」が出て期限を付けられます
 
 ### ノートのステータス
 

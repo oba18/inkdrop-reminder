@@ -2,11 +2,13 @@ import { dismissAlert, pushAlert, type ReminderAlert } from './alerts'
 import { getConfig, getEnv, saveEditingNote } from './env'
 import {
   TASK_RE,
+  noteDueEdit,
   parseNoteDue,
   replaceDueToken,
   setDueMarker,
   setDoingMarker,
   setPriorityMarker,
+  setScheduleMarkers,
   stripMarkers,
   type DueInfo,
   type ParsedTask,
@@ -95,6 +97,25 @@ function flash(el: Element) {
 }
 
 /**
+ * Points the note list (and the sidebar selection) at the note's notebook, so
+ * the opened note shows up selected in it. The list may still be on whatever
+ * the sidebar had before the Tasks view, e.g. Templates, which doesn't list
+ * it. All Notes and the note's own notebook are left as they are. Returns
+ * whether it switched.
+ */
+async function showNotebookOf(noteId: string): Promise<boolean> {
+  const env = getEnv()
+  const query = env.store.getState().queryContext as
+    | { mode?: string; bookId?: string; tagId?: string; status?: string }
+    | undefined
+  const note = await env.localDB.notes.get(noteId)
+  if (!note?.bookId || query?.mode === 'all') return false
+  if (query?.mode === 'book' && query.bookId === note.bookId && !query.tagId && !query.status) return false
+  env.commands.dispatch(document.body, 'core:note-list-show-notes-in-book', { bookId: note.bookId })
+  return true
+}
+
+/**
  * Opens the alert's note and, for a task, moves the editor cursor to its line
  * and highlights it in the preview.
  */
@@ -102,7 +123,9 @@ export async function jumpToAlert(alert: Pick<ReminderAlert, 'noteId' | 'task'>)
   const env = getEnv()
   env.window.show()
   env.window.focus()
-  if (env.store.getState().editingNote?._id !== alert.noteId) {
+  // After switching notebooks, open it again even if it is already open, to select it in the new list.
+  const switched = await showNotebookOf(alert.noteId)
+  if (switched || env.store.getState().editingNote?._id !== alert.noteId) {
     env.commands.dispatch(document.body, 'core:open-note', {
       noteId: alert.noteId,
       selectInNoteListBar: true
@@ -243,6 +266,39 @@ export async function setTaskMarkers(
     if (priority !== undefined) content = setPriorityMarker(content, priority)
     if (due) content = setDueMarker(content, due)
     return `${m[1]}${m[2]}${m[3]}${content}`
+  })
+}
+
+/** Sets a task's priority and due date / period / reminder (`null` removes the due date). */
+export async function setTaskSchedule(
+  noteId: string,
+  task: Pick<ParsedTask, 'line' | 'text'>,
+  due: DueInfo | null,
+  priority: Priority
+) {
+  await rewriteTaskLine(noteId, task, m => `${m[1]}${m[2]}${m[3]}${setScheduleMarkers(m[4], due, priority)}`)
+}
+
+/** Sets a note's own due date / period / reminder, adding or (`null`) removing its due line. */
+export async function setNoteSchedule(noteId: string, due: DueInfo | null) {
+  markLocalEdit(noteId)
+  const env = getEnv()
+  const view = env.store.getState().editingNote?._id === noteId ? env.getActiveEditor() : null
+  if (view) {
+    const edit = noteDueEdit(view.state.doc.toString(), due)
+    if (!edit) return
+    view.dispatch({ changes: edit })
+    await saveEditingNote(view.state.doc.toString())
+    return
+  }
+  const note = await env.localDB.notes.get(noteId)
+  const body: string = note.body ?? ''
+  const edit = noteDueEdit(body, due)
+  if (!edit) return
+  await env.localDB.notes.put({
+    ...note,
+    body: body.slice(0, edit.from) + edit.insert + body.slice(edit.to),
+    updatedAt: Date.now()
   })
 }
 

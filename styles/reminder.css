@@ -2612,3 +2612,33 @@ span.subtask-toggle {
     align-content: start;
   }
 }
+
+/* Due badges in the task list / Kanban / matrix are buttons that open the due date picker */
+.reminder-tasks-view button.due {
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.reminder-tasks-view button.due:hover {
+  outline: 1px solid currentColor;
+  outline-offset: -1px;
+}
+
+/* "⏰＋" on a task without a due date only shows on hover, like the unset stars */
+.reminder-tasks-view button.due.add {
+  visibility: hidden;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+}
+
+.reminder-tasks-view button.due.add:hover {
+  opacity: 1;
+}
+
+.reminder-tasks-group li:hover > .due.add,
+.reminder-kanban-card:hover > .meta > .due.add,
+.subtask-checklist .row:hover > .due.add {
+  visibility: visible;
+}

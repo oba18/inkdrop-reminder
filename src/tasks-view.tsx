@@ -17,6 +17,7 @@ import {
 import { dueDate, toDateString, type DayTime, type DueInfo, type Priority } from './parse'
 import { getScheduler, type TaskItem } from './scheduler'
 import { CalendarPanel } from './calendar/calendar-view'
+import { editItemDue } from './due-dialog'
 import { Gantt } from './gantt'
 import { Matrix } from './matrix'
 import { NoteBoard } from './note-board'
@@ -28,8 +29,19 @@ const ACTIVE_CLASS = 'reminder-tasks-active'
 let active = false
 const activeListeners = new Set<(active: boolean) => void>()
 
-export function setTasksViewActive(next: boolean) {
+/** The current entry of Inkdrop's back / forward history */
+function currentEntry(): unknown {
+  const navigation = peekEnv()?.store.getState().navigation
+  return navigation?.history?.[navigation.offset] ?? null
+}
+
+/**
+ * `keepBase`: coming back to the view by Back, where Back from it still goes
+ * to what was showing before it was first opened.
+ */
+export function setTasksViewActive(next: boolean, { keepBase = false } = {}) {
   if (active === next) return
+  if (next && !keepBase) baseEntry = currentEntry()
   active = next
   document.body.classList.toggle(ACTIVE_CLASS, next)
   for (const l of activeListeners) l(next)
@@ -45,6 +57,86 @@ function useTasksViewActive(): boolean {
     }
   }, [])
   return value
+}
+
+/*
+ * ---- Back and the Tasks view ----
+ *
+ * Inkdrop's history knows nothing of the view, so it is fitted in by hand:
+ * Back from a note opened here returns to the view, and Back from the view
+ * to whatever was showing before it was opened (as if it were an entry
+ * between the two).
+ */
+
+/** The history entry under the view when it was opened */
+let baseEntry: unknown = null
+/** The history entry that opening a note from the Tasks view landed on */
+let jumpEntry: unknown = null
+/** Set while stepping back through the history ourselves */
+let steppingBack = false
+
+/**
+ * Leaves the Tasks view for a note being opened, remembering the history
+ * entry that lands on, for `returnToTasksOnBack`.
+ */
+function leaveForNote(noteId: string) {
+  setTasksViewActive(false)
+  jumpEntry = null
+  const env = getEnv()
+  // Opening the note (and switching notebooks) may push a new entry, or not.
+  const record = () => {
+    const { editingNote, navigation } = env.store.getState()
+    if (editingNote?._id === noteId) jumpEntry = navigation?.history?.[navigation.offset] ?? null
+  }
+  const unsubscribe = env.store.subscribe(record)
+  record()
+  setTimeout(unsubscribe, 2000)
+}
+
+/**
+ * Back from the view: closes it and steps back over the entries pushed by the
+ * notes opened from it, to the one it was opened over.
+ */
+async function backFromTasks() {
+  const env = getEnv()
+  const { navigation } = env.store.getState()
+  const base = navigation.history.indexOf(baseEntry)
+  setTasksViewActive(false)
+  steppingBack = true
+  try {
+    for (let n = navigation.offset - base; base >= 0 && n > 0; n--) {
+      const offset = env.store.getState().navigation.offset
+      env.commands.dispatch(document.body, 'core:navigate-back')
+      const start = Date.now()
+      while (env.store.getState().navigation.offset === offset && Date.now() - start < 1000) {
+        await new Promise(r => setTimeout(r, 30))
+      }
+    }
+  } finally {
+    steppingBack = false
+  }
+}
+
+/**
+ * Fits the view into Back (button, ⌘←), as above. Runs in the capture phase
+ * to get ahead of Inkdrop's own handler on `document.body`.
+ */
+export function returnToTasksOnBack(): () => void {
+  const onBack = (e: Event) => {
+    if (steppingBack || !peekEnv()) return
+    if (active) {
+      e.stopPropagation()
+      jumpEntry = null
+      backFromTasks().catch(err => console.error('[reminder] back failed:', err))
+      return
+    }
+    if (!jumpEntry || currentEntry() !== jumpEntry) return
+    e.stopPropagation()
+    jumpEntry = null
+    setTasksViewActive(true, { keepBase: true })
+  }
+  document.addEventListener('core:navigate-back', onBack, true)
+  return () => document.removeEventListener('core:navigate-back', onBack, true)
 }
 
 /** Indexed tasks, minus those in the notebooks the settings exclude. */
@@ -443,7 +535,7 @@ const TasksViewBody: React.FC = () => {
   }
 
   const open = (item: TaskItem, { noteOnly = false } = {}) => {
-    setTasksViewActive(false)
+    leaveForNote(item.noteId)
     const task = noteOnly || item.kind === 'note' ? null : item.task
     jumpToAlert({ noteId: item.noteId, task }).catch(err =>
       console.error('[reminder] jump failed:', err)
@@ -584,7 +676,7 @@ const TasksViewBody: React.FC = () => {
       ) : mode === 'gantt' ? (
         <Gantt items={visible} ctx={ctx} />
       ) : mode === 'calendar' ? (
-        <CalendarPanel items={visible} leave={() => setTasksViewActive(false)} />
+        <CalendarPanel items={visible} leave={leaveForNote} />
       ) : (
         <div className="reminder-tasks-body">
           {groups.length === 0 ? (
@@ -753,10 +845,29 @@ export const ParentLabel: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ it
   return parent ? <span className="subtask-parent">↳ {itemTitle(parent)}</span> : null
 }
 
+/**
+ * `⏰ 10/20(火)`: click to change it in the due date picker. An open task
+ * without one gets an add button instead (shown on hover).
+ */
 export const DueBadge: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item, ctx }) => {
-  if (!item.task.due) return null
+  const edit = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    editItemDue(item)
+  }
+  if (!item.task.due) {
+    if (item.kind === 'note' || item.task.checked) return null
+    return (
+      <button type="button" className="due add" title="期限を設定" onClick={edit}>
+        ⏰＋
+      </button>
+    )
+  }
   const bucket = bucketOf(item, ctx.now, ctx.defaultTime)
-  return <span className={`due ${bucket}`}>⏰ {formatDue(item)}</span>
+  return (
+    <button type="button" className={`due ${bucket}`} title="クリックで期限を変更" onClick={edit}>
+      ⏰ {formatDue(item)}
+    </button>
+  )
 }
 
 export const NoteLabel: React.FC<{ item: TaskItem; ctx: ItemContext; link?: boolean }> = ({ item, ctx, link }) => (

@@ -9,7 +9,7 @@ import { NoteDueButton } from './note-due-button'
 import { showDesktopNotification } from './notify'
 import { remarkDue } from './remark-due'
 import { ReminderScheduler } from './scheduler'
-import { SideBarMenuItemTasks, TasksView, setTasksViewActive, showTasks } from './tasks-view'
+import { SideBarMenuItemTasks, TasksView, returnToTasksOnBack, setTasksViewActive, showTasks } from './tasks-view'
 
 /** Due badges and ⏰+ buttons in the preview open the picker for their task / the note. */
 function onPreviewClick(e: MouseEvent) {
@@ -116,6 +116,7 @@ class ReminderPlugin implements IInkdropPlugin {
 
   private scheduler: ReminderScheduler | null = null
   private commands: { dispose(): void } | null = null
+  private stopBackToTasks: (() => void) | null = null
 
   activate(env: Environment) {
     setEnv(env)
@@ -150,6 +151,7 @@ class ReminderPlugin implements IInkdropPlugin {
       }
     }
 
+    if (env.isMainWindow) this.stopBackToTasks = returnToTasksOnBack()
     this.commands = env.commands.add(document.body, {
       'reminder:test-notification': {
         description: 'Reminder: テスト通知を送る',
@@ -230,6 +232,8 @@ class ReminderPlugin implements IInkdropPlugin {
 
   deactivate(env: Environment) {
     setTasksViewActive(false)
+    this.stopBackToTasks?.()
+    this.stopBackToTasks = null
     for (const layout of MAIN_LAYOUTS) env.layouts.removeComponentFromLayout(layout, 'ReminderTasksView')
     env.components.deleteClass(TasksView, 'ReminderTasksView')
     env.layouts.removeComponentFromLayout('sidebar-menu', 'ReminderSideBarMenuItemTasks')

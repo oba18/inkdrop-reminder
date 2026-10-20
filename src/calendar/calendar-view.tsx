@@ -111,7 +111,7 @@ const VIEWS: Array<{ value: ViewKind; label: string; key: string }> = [
 ]
 
 /** The Tasks view's calendar tab: tasks with a due date, as filtered by the Tasks view. */
-export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: () => void }> = ({ items, leave }) => {
+export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: string) => void }> = ({ items, leave }) => {
   const env = getEnv()
   const cfg = getConfig()
   const { weekStartsOn } = cfg
@@ -207,7 +207,7 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: () => void }>
     weekStartsOn,
     itemsOn: day => byDay.get(toDateString(day)) ?? [],
     open: item => {
-      leave()
+      leave(item.task.source.noteId)
       openTask(item.task).catch(report('ノートを開けませんでした'))
     },
     toggleDone: item => {
