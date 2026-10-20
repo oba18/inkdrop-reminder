@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 
 import { getConfig, getEnv, peekEnv } from './env'
+import { rangeSep, shortDate, tr, useLanguage } from './i18n'
 import {
   jumpToAlert,
   setNoteDue,
@@ -260,9 +261,9 @@ export type Mode = 'list' | 'kanban' | 'matrix' | 'notes' | 'gantt' | 'calendar'
 type GroupBy = 'due' | 'status' | 'note'
 
 const GROUP_BYS: Array<{ value: GroupBy; label: string }> = [
-  { value: 'due', label: '期限' },
-  { value: 'status', label: 'ステータス' },
-  { value: 'note', label: 'ノート' }
+  { value: 'due', get label() { return tr('Due', '期限') } },
+  { value: 'status', get label() { return tr('Status', 'ステータス') } },
+  { value: 'note', get label() { return tr('Note', 'ノート') } }
 ]
 
 /** Completed / Dropped notes' tasks are hidden until asked for. */
@@ -299,24 +300,23 @@ function saveMode(mode: Mode) {
 }
 
 const FILTERS: Array<{ value: Filter; label: string }> = [
-  { value: 'open', label: '未完了' },
-  { value: 'done', label: '完了' },
-  { value: 'all', label: 'すべて' }
+  { value: 'open', get label() { return tr('Open', '未完了') } },
+  { value: 'done', get label() { return tr('Done', '完了') } },
+  { value: 'all', get label() { return tr('All', 'すべて') } }
 ]
 
 type Bucket = 'overdue' | 'past' | 'today' | 'tomorrow' | 'week' | 'later' | 'none'
 
 const BUCKETS: Array<{ key: Bucket; label: string }> = [
-  { key: 'overdue', label: '期限切れ' },
-  { key: 'past', label: '過去' },
-  { key: 'today', label: '今日' },
-  { key: 'tomorrow', label: '明日' },
-  { key: 'week', label: '7日以内' },
-  { key: 'later', label: 'それ以降' },
-  { key: 'none', label: '期限なし' }
+  { key: 'overdue', get label() { return tr('Overdue', '期限切れ') } },
+  { key: 'past', get label() { return tr('Past', '過去') } },
+  { key: 'today', get label() { return tr('Today', '今日') } },
+  { key: 'tomorrow', get label() { return tr('Tomorrow', '明日') } },
+  { key: 'week', get label() { return tr('Next 7 days', '7日以内') } },
+  { key: 'later', get label() { return tr('Later', 'それ以降') } },
+  { key: 'none', get label() { return tr('No due date', '期限なし') } }
 ]
 
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 
 function addDays(base: Date, n: number): string {
   const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + n)
@@ -339,16 +339,13 @@ function bucketOf(item: TaskItem, now: Date, defaultTime: string): Bucket {
 }
 
 function formatDayTime(dt: DayTime, { weekday = true } = {}): string {
-  const [y, mo, d] = dt.date.split('-').map(Number)
-  const date = new Date(y, mo - 1, d)
-  const year = y === new Date().getFullYear() ? '' : `${y}/`
-  return `${year}${mo}/${d}${weekday ? `(${WEEKDAYS[date.getDay()]})` : ''}${dt.time ? ` ${dt.time}` : ''}`
+  return `${shortDate(dt.date, { weekday })}${dt.time ? ` ${dt.time}` : ''}`
 }
 
-/** `10/20(火) 15:00`, or for a period `10/20〜10/23 18:00`. */
+/** `10/20(火) 15:00` / `Tue 10/20 15:00`, or for a period `10/20〜10/23 18:00` / `10/20 – 10/23 18:00`. */
 export function formatDue(item: TaskItem): string {
   const due = item.task.due!
-  if (due.start) return `${formatDayTime(due.start, { weekday: false })}〜${formatDayTime(due, { weekday: false })}`
+  if (due.start) return `${formatDayTime(due.start, { weekday: false })}${rangeSep()}${formatDayTime(due, { weekday: false })}`
   return formatDayTime(due)
 }
 
@@ -364,12 +361,12 @@ export const itemKey = (t: TaskItem) => `${t.noteId}:${t.kind === 'note' ? 'note
 
 /** What a row or card is called: the task text, or the note title for a note's own due date. */
 export function itemTitle(t: TaskItem): string {
-  if (t.kind === 'note') return t.noteTitle || '無題のノート'
-  return plainText(t.task.text) || '（無題のタスク）'
+  if (t.kind === 'note') return t.noteTitle || tr('Untitled note', '無題のノート')
+  return plainText(t.task.text) || tr('(untitled task)', '（無題のタスク）')
 }
 
 export const KindChip: React.FC<{ item: TaskItem }> = ({ item }) =>
-  item.kind === 'note' ? <span className="kind-note">📒 ノート</span> : null
+  item.kind === 'note' ? <span className="kind-note">📒 {tr('Note', 'ノート')}</span> : null
 
 function matches(item: TaskItem, keyword: string): boolean {
   if (!keyword) return true
@@ -382,6 +379,7 @@ function matches(item: TaskItem, keyword: string): boolean {
  * the note list and editor while "Tasks" is selected in the sidebar.
  */
 export const TasksView: React.FC = () => {
+  useLanguage()
   const isActive = useTasksViewActive()
   if (!isActive) return null
   return <TasksViewBody />
@@ -507,7 +505,7 @@ const TasksViewBody: React.FC = () => {
     if (groupBy === 'status') {
       return STATUSES.filter(st => byKey.has(st.value)).map(st => ({
         key: st.value,
-        label: st.value === 'none' ? 'ステータスなし' : st.label,
+        label: st.value === 'none' ? tr('No status', 'ステータスなし') : st.label,
         status: st.value,
         className: `status-${st.value}`,
         nodes: byKey.get(st.value)!
@@ -616,7 +614,7 @@ const TasksViewBody: React.FC = () => {
           ))}
         </div>
         {mode === 'list' && (
-          <div className="reminder-tasks-filters" title="グループ">
+          <div className="reminder-tasks-filters" title={tr('Group by', 'グループ')}>
             {GROUP_BYS.map(g => (
               <button
                 key={g.value}
@@ -643,7 +641,7 @@ const TasksViewBody: React.FC = () => {
             ))}
           </div>
         )}
-        <div className="reminder-status-filter" title="表示するノートのステータス">
+        <div className="reminder-status-filter" title={tr('Note statuses to show', '表示するノートのステータス')}>
           {STATUSES.map(st => (
             <button
               key={st.value}
@@ -659,14 +657,14 @@ const TasksViewBody: React.FC = () => {
         <input
           type="search"
           className="reminder-tasks-search"
-          placeholder="タスク・ノートを検索"
+          placeholder={tr('Search tasks and notes', 'タスク・ノートを検索')}
           value={keyword}
           onChange={e => setKeyword(e.target.value)}
         />
       </div>
       {error && <div className="reminder-tasks-error">{error}</div>}
       {!getScheduler()?.started ? (
-        <div className="reminder-tasks-empty">読み込み中…</div>
+        <div className="reminder-tasks-empty">{tr('Loading…', '読み込み中…')}</div>
       ) : mode === 'kanban' ? (
         <Kanban items={visible} ctx={ctx} />
       ) : mode === 'matrix' ? (
@@ -680,7 +678,7 @@ const TasksViewBody: React.FC = () => {
       ) : (
         <div className="reminder-tasks-body">
           {groups.length === 0 ? (
-            <div className="reminder-tasks-empty">タスクはありません</div>
+            <div className="reminder-tasks-empty">{tr('No tasks', 'タスクはありません')}</div>
           ) : (
             groups.map(g => (
               <section key={g.key} className={`reminder-tasks-group ${g.className}`}>
@@ -704,7 +702,7 @@ const TasksViewBody: React.FC = () => {
                           .join(' ')}
                         style={{ '--depth': depth } as React.CSSProperties}
                         onClick={() => open(item)}
-                        title="クリックでタスクを開く"
+                        title={tr('Click to open the task', 'クリックでタスクを開く')}
                       >
                         <CollapseToggle
                           node={node}
@@ -722,7 +720,7 @@ const TasksViewBody: React.FC = () => {
                         <span className="text">{itemTitle(item)}</span>
                         <Progress item={item} ctx={ctx} />
                         <Stars item={item} ctx={ctx} />
-                        {item.task.doing && !item.task.checked && <span className="doing">🏃 進行中</span>}
+                        {item.task.doing && !item.task.checked && <span className="doing">🏃 {tr('In progress', '進行中')}</span>}
                         <DueBadge item={item} ctx={ctx} />
                         {depth === 0 && groupBy !== 'note' && <NoteLabel item={item} ctx={ctx} />}
                       </li>
@@ -751,8 +749,8 @@ interface ListGroup {
 
 /** A by-note group's heading: the note (click to open it), its status and notebook */
 const NoteGroupTitle: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item, ctx }) => (
-  <span className="note-group-title" onClick={() => ctx.open(item, { noteOnly: true })} title="クリックでノートを開く">
-    📒 {item.noteTitle || '無題のノート'}
+  <span className="note-group-title" onClick={() => ctx.open(item, { noteOnly: true })} title={tr('Click to open the note', 'クリックでノートを開く')}>
+    📒 {item.noteTitle || tr('Untitled note', '無題のノート')}
     {STATUS_LABELS[statusOf(item)] && (
       <span className={`status-chip status-${statusOf(item)}`}>
         <StatusIcon status={statusOf(item)} />
@@ -764,12 +762,12 @@ const NoteGroupTitle: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item, 
 )
 
 const MODES: Array<{ value: Mode; label: string }> = [
-  { value: 'list', label: 'リスト' },
-  { value: 'kanban', label: 'カンバン' },
-  { value: 'matrix', label: 'マトリクス' },
-  { value: 'notes', label: 'ノート' },
-  { value: 'gantt', label: 'ガント' },
-  { value: 'calendar', label: 'カレンダー' }
+  { value: 'list', get label() { return tr('List', 'リスト') } },
+  { value: 'kanban', get label() { return tr('Kanban', 'カンバン') } },
+  { value: 'matrix', get label() { return tr('Matrix', 'マトリクス') } },
+  { value: 'notes', get label() { return tr('Notes', 'ノート') } },
+  { value: 'gantt', get label() { return tr('Gantt', 'ガント') } },
+  { value: 'calendar', get label() { return tr('Calendar', 'カレンダー') } }
 ]
 
 export interface ItemContext {
@@ -795,7 +793,7 @@ export const Stars: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item, ct
           key={n}
           type="button"
           className={n <= p ? 'on' : ''}
-          title={n === p ? '優先度をなしにする' : `優先度 ${'★'.repeat(n)}`}
+          title={n === p ? tr('Clear priority', '優先度をなしにする') : tr(`Priority ${'★'.repeat(n)}`, `優先度 ${'★'.repeat(n)}`)}
           onClick={() => ctx.prioritize(item, n === p ? 0 : n)}
         >
           {n <= p ? '★' : '☆'}
@@ -815,7 +813,7 @@ export const CollapseToggle: React.FC<{ node: TaskNode; collapsed: boolean; onTo
     <button
       type="button"
       className="subtask-toggle"
-      title={collapsed ? '小タスクを表示' : '小タスクを隠す'}
+      title={collapsed ? tr('Show subtasks', '小タスクを表示') : tr('Hide subtasks', '小タスクを隠す')}
       onClick={e => {
         e.stopPropagation()
         onToggle()
@@ -833,7 +831,7 @@ export const Progress: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item,
   if (!subs.length) return null
   const done = subs.filter(t => t.task.checked).length
   return (
-    <span className={`subtask-progress${done === subs.length ? ' complete' : ''}`} title="完了した小タスク">
+    <span className={`subtask-progress${done === subs.length ? ' complete' : ''}`} title={tr('Subtasks done', '完了した小タスク')}>
       ☑ {done}/{subs.length}
     </span>
   )
@@ -857,14 +855,14 @@ export const DueBadge: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item,
   if (!item.task.due) {
     if (item.kind === 'note' || item.task.checked) return null
     return (
-      <button type="button" className="due add" title="期限を設定" onClick={edit}>
+      <button type="button" className="due add" title={tr('Set due date', '期限を設定')} onClick={edit}>
         ⏰＋
       </button>
     )
   }
   const bucket = bucketOf(item, ctx.now, ctx.defaultTime)
   return (
-    <button type="button" className={`due ${bucket}`} title="クリックで期限を変更" onClick={edit}>
+    <button type="button" className={`due ${bucket}`} title={tr('Click to change the due date', 'クリックで期限を変更')} onClick={edit}>
       ⏰ {formatDue(item)}
     </button>
   )
@@ -873,7 +871,7 @@ export const DueBadge: React.FC<{ item: TaskItem; ctx: ItemContext }> = ({ item,
 export const NoteLabel: React.FC<{ item: TaskItem; ctx: ItemContext; link?: boolean }> = ({ item, ctx, link }) => (
   <span
     className={`note${link ? ' link' : ''}`}
-    title={link ? 'クリックでノートを開く' : undefined}
+    title={link ? tr('Click to open the note', 'クリックでノートを開く') : undefined}
     onClick={
       link
         ? e => {
@@ -891,7 +889,7 @@ export const NoteLabel: React.FC<{ item: TaskItem; ctx: ItemContext; link?: bool
       ctx.books[item.bookId] && <span className="book">📁 {ctx.books[item.bookId].name}</span>
     ) : (
       <>
-        📒 {item.noteTitle || '無題のノート'}
+        📒 {item.noteTitle || tr('Untitled note', '無題のノート')}
         {ctx.books[item.bookId] && <span className="book"> · {ctx.books[item.bookId].name}</span>}
       </>
     )}
@@ -901,9 +899,9 @@ export const NoteLabel: React.FC<{ item: TaskItem; ctx: ItemContext; link?: bool
 /* ---- Kanban ---- */
 
 const LANES: Array<{ state: TaskState; label: string }> = [
-  { state: 'todo', label: '未着手' },
-  { state: 'doing', label: '進行中' },
-  { state: 'done', label: '完了' }
+  { state: 'todo', get label() { return tr('To do', '未着手') } },
+  { state: 'doing', get label() { return tr('In progress', '進行中') } },
+  { state: 'done', get label() { return tr('Done', '完了') } }
 ]
 
 /** Done tasks pile up; show the most recent ones and page through the rest. */
@@ -980,7 +978,7 @@ const Kanban: React.FC<{ items: TaskItem[]; ctx: ItemContext }> = ({ items, ctx 
                     setDragOver(null)
                   }}
                   onClick={() => ctx.open(item)}
-                  title="クリックでタスクを開く・ドラッグで移動"
+                  title={tr('Click to open the task, drag to move it', 'クリックでタスクを開く・ドラッグで移動')}
                 >
                   <div className="text">
                     <KindChip item={item} />
@@ -1005,10 +1003,10 @@ const Kanban: React.FC<{ items: TaskItem[]; ctx: ItemContext }> = ({ items, ctx 
               ))}
               {shown.length < all.length && (
                 <button type="button" className="more" onClick={() => setDoneLimit(n => n + DONE_PAGE * 2)}>
-                  さらに表示（残り {all.length - shown.length} 件）
+                  {tr(`Show more (${all.length - shown.length} left)`, `さらに表示（残り ${all.length - shown.length} 件）`)}
                 </button>
               )}
-              {all.length === 0 && <div className="empty">ここにドラッグ</div>}
+              {all.length === 0 && <div className="empty">{tr('Drag here', 'ここにドラッグ')}</div>}
             </div>
           </section>
         )
@@ -1031,7 +1029,7 @@ export const SubtaskChecklist: React.FC<{ item: TaskItem; ctx: ItemContext }> = 
               checked={sub.task.checked}
               onChange={() => ctx.move(sub, sub.task.checked ? 'todo' : 'done')}
             />
-            <span className="text" onClick={() => ctx.open(sub)} title="クリックでタスクを開く">
+            <span className="text" onClick={() => ctx.open(sub)} title={tr('Click to open the task', 'クリックでタスクを開く')}>
               {itemTitle(sub)}
             </span>
             {sub.task.doing && !sub.task.checked && <span className="doing">🏃</span>}
@@ -1045,7 +1043,13 @@ export const SubtaskChecklist: React.FC<{ item: TaskItem; ctx: ItemContext }> = 
 }
 
 const LANE_ACTIONS: Record<TaskState, string> = {
-  todo: '↩ 未着手',
-  doing: '🏃 進行中',
-  done: '✓ 完了'
+  get todo() {
+    return tr('↩ To do', '↩ 未着手')
+  },
+  get doing() {
+    return tr('🏃 In progress', '🏃 進行中')
+  },
+  get done() {
+    return tr('✓ Done', '✓ 完了')
+  }
 }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 
 import { getConfig, getEnv, peekEnv } from './env'
+import { lang, tr, useLanguage } from './i18n'
 import { dueDate, formatDueLabel, parseNoteDue, type DueInfo } from './parse'
 
 interface EditingNote {
@@ -19,10 +20,11 @@ function readNoteDue(): { due: DueInfo; closed: boolean } | null {
 
 /**
  * Editor header button showing the note's own due date, TickTick-style:
- * a calendar icon when unset, `⏰ 10/20 15:00 · 🔔15分前` (red when overdue) when set.
+ * a calendar icon when unset, `⏰ 10/20 15:00 · 🔔15 min before` (red when overdue) when set.
  * Clicking opens the picker for the note.
  */
 export const NoteDueButton: React.FC = () => {
+  useLanguage()
   const env = getEnv()
   const [state, setState] = useState(readNoteDue)
   // Re-render each minute so the overdue color flips without an edit.
@@ -52,7 +54,7 @@ export const NoteDueButton: React.FC = () => {
 
   if (!state) {
     return (
-      <AppHeaderButton className="icon reminder-note-due-button" title="ノートの期限を設定" onClick={handleClick}>
+      <AppHeaderButton className="icon reminder-note-due-button" title={tr("Set the note's due date", 'ノートの期限を設定')} onClick={handleClick}>
         <svg viewBox="0 0 24 24" width="1em" height="1em" className="svg-icon">
           <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5">
             <rect x="3" y="4.5" width="18" height="16.5" rx="2" />
@@ -67,12 +69,12 @@ export const NoteDueButton: React.FC = () => {
   const { defaultTime, defaultRemindMinutes } = getConfig()
   const at = dueDate(due, defaultTime)
   const overdue = !closed && at.getTime() < Date.now()
-  const label = formatDueLabel(due, defaultTime, defaultRemindMinutes)
+  const label = formatDueLabel(due, defaultTime, defaultRemindMinutes, lang())
   const cls = ['reminder-note-due-button', 'has-due', overdue && 'overdue', closed && 'done']
     .filter(Boolean)
     .join(' ')
   return (
-    <AppHeaderButton className={cls} title="ノートの期限を変更" onClick={handleClick}>
+    <AppHeaderButton className={cls} title={tr("Change the note's due date", 'ノートの期限を変更')} onClick={handleClick}>
       <span className="reminder-note-due-label">
         ⏰ {label}
       </span>

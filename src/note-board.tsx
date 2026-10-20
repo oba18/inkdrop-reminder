@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 
 import { getEnv } from './env'
+import { rangeSep, shortDate, tr } from './i18n'
 import type { NoteStatus } from './notify'
 import { dueDate, type DueInfo } from './parse'
 import type { TaskItem } from './scheduler'
@@ -69,14 +70,11 @@ function cardsOf(notes: Set<string>, all: TaskItem[], defaultTime: string): Note
   return [...cards.values()]
 }
 
-/** `10/20(火)`, `10/20〜10/23`: the date part of a due date */
+/** `10/20(火)` / `Tue 10/20`, or a period: the date part of a due date */
 function formatDay(due: DueInfo): string {
-  const md = (date: string) => {
-    const [y, m, d] = date.split('-').map(Number)
-    const wd = '日月火水木金土'[new Date(y, m - 1, d).getDay()]
-    return `${y === new Date().getFullYear() ? '' : `${y}/`}${m}/${d}(${wd})`
-  }
-  return due.start ? `${md(due.start.date)}〜${md(due.date)}` : `${md(due.date)}${due.time ? ` ${due.time}` : ''}`
+  return due.start
+    ? `${shortDate(due.start.date)}${rangeSep()}${shortDate(due.date)}`
+    : `${shortDate(due.date)}${due.time ? ` ${due.time}` : ''}`
 }
 
 /**
@@ -172,9 +170,9 @@ export const NoteBoard: React.FC<{
                       setDragOver(null)
                     }}
                     onClick={() => ctx.open(card.item, { noteOnly: true })}
-                    title="クリックでノートを開く・ドラッグでステータスを変更"
+                    title={tr('Click to open the note, drag to change its status', 'クリックでノートを開く・ドラッグでステータスを変更')}
                   >
-                    <div className="text">{card.title || '無題のノート'}</div>
+                    <div className="text">{card.title || tr('Untitled note', '無題のノート')}</div>
                     {card.tags.length > 0 && (
                       <div className="tags">
                         {card.tags.map(id =>
@@ -220,10 +218,10 @@ export const NoteBoard: React.FC<{
                   className="more"
                   onClick={() => setLimits({ ...limits, [lane.value]: limit + PAGE * 2 })}
                 >
-                  さらに表示（残り {cards.length - shown.length} 件）
+                  {tr(`Show more (${cards.length - shown.length} left)`, `さらに表示（残り ${cards.length - shown.length} 件）`)}
                 </button>
               )}
-              {cards.length === 0 && <div className="empty">ここにドラッグ</div>}
+              {cards.length === 0 && <div className="empty">{tr('Drag here', 'ここにドラッグ')}</div>}
             </div>
           </section>
         )

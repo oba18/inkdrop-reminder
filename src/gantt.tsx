@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react'
 
 import { taskState } from './notify'
+import { locale, tr } from './i18n'
 import { dueDate, toDateString, type DueInfo } from './parse'
 import type { TaskItem } from './scheduler'
 import { flatten, nest, type TaskNode } from './subtasks'
@@ -16,7 +17,6 @@ import {
   type ItemContext
 } from './tasks-view'
 
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土']
 /** Days on screen: five weeks */
 const SPAN_DAYS = 35
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -249,13 +249,13 @@ export const Gantt: React.FC<{
   return (
     <div className="reminder-gantt">
       <div className="reminder-gantt-toolbar">
-        <button type="button" onClick={() => setFrom(addDays(from, -7))} title="前の週">
+        <button type="button" onClick={() => setFrom(addDays(from, -7))} title={tr('Previous week', '前の週')}>
           ‹
         </button>
         <button type="button" onClick={() => setFrom(defaultFrom(new Date()))}>
-          今日
+          {tr('Today', '今日')}
         </button>
-        <button type="button" onClick={() => setFrom(addDays(from, 7))} title="次の週">
+        <button type="button" onClick={() => setFrom(addDays(from, 7))} title={tr('Next week', '次の週')}>
           ›
         </button>
         <span className="range">
@@ -263,16 +263,16 @@ export const Gantt: React.FC<{
         </span>
         <label className="show-done">
           <input type="checkbox" checked={showDone} onChange={e => setShowDone(e.target.checked)} />
-          完了も表示
+          {tr('Show done', '完了も表示')}
         </label>
-        {outside > 0 && <span className="outside">表示範囲外 {outside}件</span>}
+        {outside > 0 && <span className="outside">{tr(`${outside} out of range`, `表示範囲外 ${outside}件`)}</span>}
       </div>
 
       <div className="reminder-gantt-scroll" ref={scrollRef}>
         <div className="reminder-gantt-table" style={{ width: 'max-content' }}>
           <div className="reminder-gantt-header" style={grid}>
             <div className="label-cell">
-              タスク
+              {tr('Task', 'タスク')}
             </div>
             {days.map((d, i) => (
               <div
@@ -286,9 +286,9 @@ export const Gantt: React.FC<{
                   .filter(Boolean)
                   .join(' ')}
               >
-                {(i === 0 || d.getDate() === 1) && <span className="month">{d.getMonth() + 1}月</span>}
+                {(i === 0 || d.getDate() === 1) && <span className="month">{d.toLocaleDateString(locale(), { month: 'short' })}</span>}
                 <span className="date">{d.getDate()}</span>
-                <span className="weekday">{WEEKDAYS[d.getDay()]}</span>
+                <span className="weekday">{d.toLocaleDateString(locale(), { weekday: 'narrow' })}</span>
               </div>
             ))}
           </div>
@@ -308,14 +308,16 @@ export const Gantt: React.FC<{
             </div>
 
             {rows.length === 0 ? (
-              <div className="reminder-tasks-empty">この期間に期限・期間が設定されたタスクはありません</div>
+              <div className="reminder-tasks-empty">
+                {tr('No tasks with a due date or period in this range', 'この期間に期限・期間が設定されたタスクはありません')}
+              </div>
             ) : (
               rows.map(r => (
                 <div key={itemKey(r.item)} className="row" style={grid}>
                   <div
                     className="label-cell"
                     onClick={() => ctx.open(r.item)}
-                    title="クリックで開く"
+                    title={tr('Click to open', 'クリックで開く')}
                   >
                     <div className="title" style={{ paddingLeft: `${r.depth * 16}px` }}>
                       <CollapseToggle
@@ -331,14 +333,14 @@ export const Gantt: React.FC<{
                       <Progress item={r.item} ctx={ctx} />
                       <Stars item={r.item} ctx={ctx} />
                       <span className="when">{formatDue(r.item)}</span>
-                      {r.item.kind === 'task' && <span className="note">📒 {r.item.noteTitle || '無題のノート'}</span>}
+                      {r.item.kind === 'task' && <span className="note">📒 {r.item.noteTitle || tr('Untitled note', '無題のノート')}</span>}
                     </div>
                   </div>
                   <div
                     className={barClass(r)}
                     style={{ gridColumn: `${r.first + 2} / ${r.last + 3}` }}
                     onPointerDown={e => beginDrag(e, r, 'move')}
-                    title={`${itemTitle(r.item)}\n${formatDue({ ...r.item, task: { ...r.item.task, due: r.due } })}\nドラッグで移動・端をドラッグで期間を変更`}
+                    title={`${itemTitle(r.item)}\n${formatDue({ ...r.item, task: { ...r.item.task, due: r.due } })}\n${tr('Drag to move, drag an end to change the period', 'ドラッグで移動・端をドラッグで期間を変更')}`}
                   >
                     {!r.milestone && !r.clippedStart && (
                       <span className="handle start" onPointerDown={e => beginDrag(e, r, 'start')} />

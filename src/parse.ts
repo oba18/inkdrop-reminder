@@ -285,10 +285,16 @@ export function parseNoteDue(body: string): NoteDue | null {
 }
 
 /**
- * Display label such as `10/20 15:00 · 🔔30分前`. Date-only dues show the time
- * they are treated as (`defaultTime`), so the effective time is always visible.
+ * Display label such as `10/20 15:00 · 🔔30 min before` (`🔔30分前` in Japanese).
+ * Date-only dues show the time they are treated as (`defaultTime`), so the
+ * effective time is always visible.
  */
-export function formatDueLabel(due: DueInfo, defaultTime: string, defaultRemindMinutes: number): string {
+export function formatDueLabel(
+  due: DueInfo,
+  defaultTime: string,
+  defaultRemindMinutes: number,
+  lang: 'en' | 'ja' = 'ja'
+): string {
   const md = (dt: DayTime) => {
     const [, mo, d] = dt.date.split('-').map(Number)
     return `${mo}/${d}`
@@ -297,13 +303,18 @@ export function formatDueLabel(due: DueInfo, defaultTime: string, defaultRemindM
   if (due.reminder.off) remind = '🔕'
   else {
     const min = due.reminder.minutes ?? defaultRemindMinutes
-    const base = due.start ? '開始' : '期限'
-    remind = `🔔${min === 0 ? `${base}時刻` : `${due.start ? '開始' : ''}${formatMinutesJa(min)}前`}`
+    if (lang === 'ja') {
+      const base = due.start ? '開始' : '期限'
+      remind = `🔔${min === 0 ? `${base}時刻` : `${due.start ? '開始' : ''}${formatMinutesJa(min)}前`}`
+    } else {
+      const base = due.start ? 'start' : 'due'
+      remind = `🔔${min === 0 ? `at ${base} time` : `${formatMinutesEn(min)} before${due.start ? ' start' : ''}`}`
+    }
   }
   if (due.start) {
     // A period shows times only where set: `10/20〜10/23`, `10/20 09:00〜10/23 18:00`.
     const t = (dt: DayTime) => (dt.time ? ` ${dt.time}` : '')
-    return `${md(due.start)}${t(due.start)}〜${md(due)}${t(due)} · ${remind}`
+    return `${md(due.start)}${t(due.start)}${lang === 'ja' ? '〜' : ' – '}${md(due)}${t(due)} · ${remind}`
   }
   return `${md(due)} ${due.time ?? defaultTime} · ${remind}`
 }
@@ -312,6 +323,13 @@ export function formatMinutesJa(min: number): string {
   if (min > 0 && min % (60 * 24) === 0) return `${min / (60 * 24)}日`
   if (min > 0 && min % 60 === 0) return `${min / 60}時間`
   return `${min}分`
+}
+
+export function formatMinutesEn(min: number): string {
+  const unit = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+  if (min > 0 && min % (60 * 24) === 0) return unit(min / (60 * 24), 'day', 'days')
+  if (min > 0 && min % 60 === 0) return unit(min / 60, 'hour', 'hours')
+  return `${min} min`
 }
 
 /**

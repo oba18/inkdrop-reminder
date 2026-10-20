@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
 import type { ViewContext } from './context'
+import { lang, locale, tr } from '../i18n'
 import {
   DAY_MS,
   addDays,
@@ -13,8 +14,8 @@ import {
   startOfWeek,
   toDateString,
   toTimeString,
-  weekdayLabels,
-  WEEKDAYS
+  monthTitle,
+  weekdayLabels
 } from './dates'
 import type { TaskItem as SourceItem } from '../scheduler'
 import { errorMessage, getConfig, getEnv, type ViewKind } from './env'
@@ -88,26 +89,28 @@ function title(view: ViewKind, date: Date, weekStartsOn: 0 | 1): string {
   const y = date.getFullYear()
   switch (view) {
     case 'year':
-      return `${y}年`
+      return tr(String(y), `${y}年`)
     case 'month':
-      return `${y}年${date.getMonth() + 1}月`
+      return monthTitle(date)
     case 'week': {
       const a = startOfWeek(date, weekStartsOn)
       const b = addDays(a, 6)
-      if (a.getMonth() === b.getMonth()) return `${a.getFullYear()}年${a.getMonth() + 1}月`
-      if (a.getFullYear() === b.getFullYear()) return `${a.getFullYear()}年${a.getMonth() + 1}月 – ${b.getMonth() + 1}月`
-      return `${a.getFullYear()}年${a.getMonth() + 1}月 – ${b.getFullYear()}年${b.getMonth() + 1}月`
+      if (a.getMonth() === b.getMonth()) return monthTitle(a)
+      const month = (d: Date) => d.toLocaleDateString(locale(), { month: lang() === 'ja' ? 'numeric' : 'short' })
+      if (a.getFullYear() === b.getFullYear())
+        return tr(`${month(a)} – ${month(b)} ${y}`, `${a.getFullYear()}年${month(a)} – ${month(b)}`)
+      return `${monthTitle(a)} – ${monthTitle(b)}`
     }
     default:
-      return `${y}年${date.getMonth() + 1}月${date.getDate()}日 (${WEEKDAYS[date.getDay()]})`
+      return date.toLocaleDateString(locale(), { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' })
   }
 }
 
 const VIEWS: Array<{ value: ViewKind; label: string; key: string }> = [
-  { value: 'day', label: '日', key: 'D' },
-  { value: 'week', label: '週', key: 'W' },
-  { value: 'month', label: '月', key: 'M' },
-  { value: 'year', label: '年', key: 'Y' }
+  { value: 'day', get label() { return tr('Day', '日') }, key: 'D' },
+  { value: 'week', get label() { return tr('Week', '週') }, key: 'W' },
+  { value: 'month', get label() { return tr('Month', '月') }, key: 'M' },
+  { value: 'year', get label() { return tr('Year', '年') }, key: 'Y' }
 ]
 
 /** The Tasks view's calendar tab: tasks with a due date, as filtered by the Tasks view. */
@@ -199,7 +202,7 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
     } else {
       next = { date: toDateString(start), time: allDay ? null : toTimeString(start), start: null }
     }
-    rescheduleTask(item.task, next).catch(report('タスクの日付を変更できませんでした'))
+    rescheduleTask(item.task, next).catch(report(tr("Couldn't change the task's date", 'タスクの日付を変更できませんでした')))
   }, [])
 
   const ctx: ViewContext = {
@@ -208,10 +211,10 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
     itemsOn: day => byDay.get(toDateString(day)) ?? [],
     open: item => {
       leave(item.task.source.noteId)
-      openTask(item.task).catch(report('ノートを開けませんでした'))
+      openTask(item.task).catch(report(tr("Couldn't open the note", 'ノートを開けませんでした')))
     },
     toggleDone: item => {
-      setTaskDone(item.task, !item.task.checked).catch(report('タスクを更新できませんでした'))
+      setTaskDone(item.task, !item.task.checked).catch(report(tr("Couldn't update the task", 'タスクを更新できませんでした')))
     },
     move,
     showDay: day => {
@@ -228,16 +231,16 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
   return (
     <div className="calendar-view">
       <div className="calendar-toolbar">
-        <button type="button" className="icon-button" title="サイドバーの表示を切り替え" onClick={() => setUi({ sidebar: !ui.sidebar })}>
+        <button type="button" className="icon-button" title={tr('Toggle sidebar', 'サイドバーの表示を切り替え')} onClick={() => setUi({ sidebar: !ui.sidebar })}>
           ☰
         </button>
-        <button type="button" className="today-button" title="今日 (T)" onClick={() => setDate(startOfDay(new Date()))}>
-          今日
+        <button type="button" className="today-button" title={tr('Today (T)', '今日 (T)')} onClick={() => setDate(startOfDay(new Date()))}>
+          {tr('Today', '今日')}
         </button>
-        <button type="button" className="icon-button" title="前へ (K)" onClick={() => setDate(d => step(ui.view, d, -1))}>
+        <button type="button" className="icon-button" title={tr('Previous (K)', '前へ (K)')} onClick={() => setDate(d => step(ui.view, d, -1))}>
           ‹
         </button>
-        <button type="button" className="icon-button" title="次へ (J)" onClick={() => setDate(d => step(ui.view, d, 1))}>
+        <button type="button" className="icon-button" title={tr('Next (J)', '次へ (J)')} onClick={() => setDate(d => step(ui.view, d, 1))}>
           ›
         </button>
         <h1>{title(ui.view, date, weekStartsOn)}</h1>
@@ -308,9 +311,7 @@ const Sidebar: React.FC<{
     <aside className="calendar-sidebar">
       <div className="calendar-mini">
         <div className="calendar-mini-header">
-          <span>
-            {month.getFullYear()}年{month.getMonth() + 1}月
-          </span>
+          <span>{monthTitle(month)}</span>
           <button type="button" onClick={() => setMonth(m => addMonths(m, -1))}>
             ‹
           </button>
@@ -319,8 +320,8 @@ const Sidebar: React.FC<{
           </button>
         </div>
         <div className="calendar-mini-grid">
-          {weekdayLabels(weekStartsOn).map(w => (
-            <span key={w} className="weekday">
+          {weekdayLabels(weekStartsOn, 'narrow').map((w, i) => (
+            <span key={i} className="weekday">
               {w}
             </span>
           ))}
@@ -349,12 +350,12 @@ const Sidebar: React.FC<{
         <label className="calendar-list-item" style={{ '--item-color': 'var(--calendar-task-color)' } as React.CSSProperties}>
           <input type="checkbox" checked={ui.showTasks} onChange={e => setUi({ showTasks: e.target.checked })} />
           <span className="box" />
-          <span className="name">期限付きのタスク</span>
+          <span className="name">{tr('Tasks with due dates', '期限付きのタスク')}</span>
         </label>
         <label className="calendar-list-item sub" style={{ '--item-color': 'var(--calendar-task-color)' } as React.CSSProperties}>
           <input type="checkbox" checked={ui.showDone} disabled={!ui.showTasks} onChange={e => setUi({ showDone: e.target.checked })} />
           <span className="box" />
-          <span className="name">完了したタスクも表示</span>
+          <span className="name">{tr('Show completed tasks', '完了したタスクも表示')}</span>
         </label>
       </section>
 

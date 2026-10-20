@@ -1,4 +1,5 @@
 import { getConfig } from './env'
+import { lang, tr } from './i18n'
 import { DUE_RE, REMIND_RE, dueDate, formatDueLabel, parseDueInfo } from './parse'
 
 const MARKER_RE = new RegExp(
@@ -33,7 +34,7 @@ function badge(raw: string, ctx: Ctx): MdNode {
   const { defaultTime, defaultRemindMinutes } = getConfig()
   const at = dueDate(due, defaultTime)
   const overdue = !ctx.checked && at.getTime() < Date.now()
-  const label = formatDueLabel(due, defaultTime, defaultRemindMinutes)
+  const label = formatDueLabel(due, defaultTime, defaultRemindMinutes, lang())
   const classes = ['reminder-due-badge', overdue && 'overdue', ctx.checked && 'done']
   ctx.hasBadge = true
   return {
@@ -42,7 +43,7 @@ function badge(raw: string, ctx: Ctx): MdNode {
       hName: 'span',
       hProperties: {
         className: classes.filter(Boolean),
-        title: `${raw.trim()}（クリックで変更）`,
+        title: tr(`${raw.trim()} (click to change)`, `${raw.trim()}（クリックで変更）`),
         ...target(ctx)
       },
       hChildren: [
@@ -60,7 +61,7 @@ function addButton(line: number): MdNode {
     type: 'reminderAdd',
     data: {
       hName: 'span',
-      hProperties: { className: ['reminder-preview-add'], title: '期限を設定', dataReminderLine: line },
+      hProperties: { className: ['reminder-preview-add'], title: tr('Set due date', '期限を設定'), dataReminderLine: line },
       hChildren: [{ type: 'text', value: '⏰+' }]
     }
   }

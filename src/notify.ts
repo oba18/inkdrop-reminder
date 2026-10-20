@@ -1,5 +1,6 @@
 import { dismissAlert, pushAlert, type ReminderAlert } from './alerts'
 import { getConfig, getEnv, saveEditingNote } from './env'
+import { lang, locale, tr } from './i18n'
 import {
   TASK_RE,
   noteDueEdit,
@@ -159,16 +160,18 @@ export async function jumpToAlert(alert: Pick<ReminderAlert, 'noteId' | 'task'>)
 /** `isStart`: `at` is a period's start rather than a due date. */
 export function describeWhen(at: Date, isStart = false): string {
   const diffMs = at.getTime() - Date.now()
-  const what = isStart ? '開始' : '期限'
   // Within a minute either side of the due time counts as "now".
-  if (Math.abs(diffMs) < 60 * 1000) return `${what}です`
-  if (diffMs < 0) return isStart ? '開始時刻を過ぎています' : '期限を過ぎています'
+  if (Math.abs(diffMs) < 60 * 1000) return isStart ? tr('Starts now', '開始です') : tr('Due now', '期限です')
+  if (diffMs < 0) return isStart ? tr('Already started', '開始時刻を過ぎています') : tr('Overdue', '期限を過ぎています')
   const diffMin = Math.ceil(diffMs / 60000)
-  const prefix = isStart ? '開始まで' : ''
-  if (diffMin < 60) return `${prefix}あと${diffMin}分`
   const h = Math.floor(diffMin / 60)
   const m = diffMin % 60
-  return `${prefix}あと${h}時間${m ? `${m}分` : ''}`
+  if (lang() === 'ja') {
+    const prefix = isStart ? '開始まで' : ''
+    return diffMin < 60 ? `${prefix}あと${diffMin}分` : `${prefix}あと${h}時間${m ? `${m}分` : ''}`
+  }
+  const left = diffMin < 60 ? `${diffMin} min` : `${h} h${m ? ` ${m} min` : ''}`
+  return isStart ? `Starts in ${left}` : `Due in ${left}`
 }
 
 export async function notifyReminder(
@@ -180,13 +183,13 @@ export async function notifyReminder(
 ) {
   const { notificationStyle } = getConfig()
   const title = `⏰ ${task?.text || noteTitle}`
-  const time = at.toLocaleString('ja-JP', {
+  const time = at.toLocaleString(locale(), {
     month: 'numeric',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
   })
-  const body = `${describeWhen(at, isStart)}（${time}）\n${noteTitle}`
+  const body = `${describeWhen(at, isStart)}${tr(` (${time})`, `（${time}）`)}\n${noteTitle}`
   const alert: ReminderAlert = {
     id: `${noteId}:${task ? task.line : 'note'}:${at.getTime()}`,
     noteId,
@@ -309,7 +312,7 @@ export async function setNoteDue(noteId: string, due: DueInfo) {
   const view = env.store.getState().editingNote?._id === noteId ? env.getActiveEditor() : null
   if (view) {
     const nd = parseNoteDue(view.state.doc.toString())
-    if (!nd) throw new Error('ノートの期限が見つかりませんでした')
+    if (!nd) throw new Error(tr("The note's due date was not found", 'ノートの期限が見つかりませんでした'))
     const line = view.state.doc.line(nd.line + 1)
     view.dispatch({ changes: { from: line.from, to: line.to, insert: replaceDueToken(line.text, due) } })
     await saveEditingNote(view.state.doc.toString())
@@ -317,7 +320,7 @@ export async function setNoteDue(noteId: string, due: DueInfo) {
   }
   const note = await env.localDB.notes.get(noteId)
   const nd = parseNoteDue(note.body ?? '')
-  if (!nd) throw new Error('ノートの期限が見つかりませんでした')
+  if (!nd) throw new Error(tr("The note's due date was not found", 'ノートの期限が見つかりませんでした'))
   const lines = (note.body ?? '').split('\n')
   lines[nd.line] = replaceDueToken(lines[nd.line], due)
   await env.localDB.notes.put({ ...note, body: lines.join('\n'), updatedAt: Date.now() })
@@ -351,7 +354,7 @@ async function rewriteTaskLine(
   const lines = (note.body ?? '').split('\n')
   // The line may have moved since it was indexed; fall back to the text.
   const idx = lines[line] !== undefined && isTarget(lines[line]) ? line : lines.findIndex(isTarget)
-  if (idx < 0) throw new Error('タスクが見つかりませんでした')
+  if (idx < 0) throw new Error(tr('The task was not found', 'タスクが見つかりませんでした'))
   lines[idx] = mark(lines[idx])
   await env.localDB.notes.put({ ...note, body: lines.join('\n'), updatedAt: Date.now() })
 }

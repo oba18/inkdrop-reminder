@@ -9,6 +9,7 @@ import {
 } from '@codemirror/view'
 
 import { getEnv } from './env'
+import { tr } from './i18n'
 import { DUE_RE, TASK_RE, stripMarkers } from './parse'
 
 /** ⏰ button at the end of a task line; opens the picker for that task. */
@@ -25,7 +26,7 @@ class DueButton extends WidgetType {
     const el = document.createElement('span')
     el.className = `reminder-line-due-button${this.hasDue ? ' has-due' : ''}`
     el.textContent = this.hasDue ? '⏰' : '⏰+'
-    el.title = this.hasDue ? 'このタスクの期限を変更' : 'このタスクに期限を設定'
+    el.title = this.hasDue ? tr("Change this task's due date", 'このタスクの期限を変更') : tr('Set a due date for this task', 'このタスクに期限を設定')
     el.setAttribute('aria-label', el.title)
     // mousedown, so the editor doesn't move the cursor first.
     el.addEventListener('mousedown', e => {

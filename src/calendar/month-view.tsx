@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 
 import { Chip, dragging } from './chip'
 import { DRAG_TYPE, type ViewContext } from './context'
+import { locale, tr } from '../i18n'
 import { monthGrid, sameDay, toDateString, weekdayLabels } from './dates'
 
 const CHIP_HEIGHT = 22
@@ -47,8 +48,8 @@ export const MonthView: React.FC<{ month: Date; ctx: ViewContext }> = ({ month, 
   return (
     <div className="calendar-month">
       <div className="calendar-month-weekdays">
-        {weekdayLabels(ctx.weekStartsOn).map(w => (
-          <div key={w} className={`weekday ${w === '日' ? 'sun' : w === '土' ? 'sat' : ''}`}>
+        {weekdayLabels(ctx.weekStartsOn).map((w, i) => (
+          <div key={i} className={`weekday ${{ 0: 'sun', 6: 'sat' }[(i + ctx.weekStartsOn) % 7] ?? ''}`}>
             {w}
           </div>
         ))}
@@ -88,13 +89,13 @@ export const MonthView: React.FC<{ month: Date; ctx: ViewContext }> = ({ month, 
                 <button
                   type="button"
                   className="date-number"
-                  title="この日を表示"
+                  title={tr('Show this day', 'この日を表示')}
                   onClick={e => {
                     e.stopPropagation()
                     ctx.showDay(day)
                   }}
                 >
-                  {day.getDate() === 1 ? `${day.getMonth() + 1}月${day.getDate()}日` : day.getDate()}
+                  {day.getDate() === 1 ? day.toLocaleDateString(locale(), { month: 'short', day: 'numeric' }) : day.getDate()}
                 </button>
               </div>
               <div className="calendar-month-items">
@@ -110,7 +111,7 @@ export const MonthView: React.FC<{ month: Date; ctx: ViewContext }> = ({ month, 
                       ctx.showDay(day)
                     }}
                   >
-                    他 {items.length - fit} 件
+                    {tr(`${items.length - fit} more`, `他 ${items.length - fit} 件`)}
                   </button>
                 )}
               </div>

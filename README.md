@@ -14,7 +14,7 @@ ipm install reminder
 
 Works with the Inkdrop 6+ desktop app. The keyboard shortcuts are for macOS (on Windows / Linux, use the Plugins menu or the commands).
 
-The plugin's UI text is currently in Japanese. The main labels are: リスト (List), カンバン (Kanban), マトリクス (Eisenhower matrix), ノート (Notes), ガント (Gantt), カレンダー (Calendar), 期限 (due date), 未着手 / 進行中 / 完了 (To do / In progress / Done).
+The UI is shown in English, or in Japanese when Japanese is one of your system languages (change it with the Language setting).
 
 ### Features that edit your notes automatically
 
@@ -22,9 +22,9 @@ The following features rewrite notes automatically. Each can be turned off in Pr
 
 | Feature | Default | What it does |
 | --- | --- | --- |
-| Link parent and subtask checks (親タスクと小タスクのチェックを連動させる) | On | Checking a parent checks its subtasks, finishing all subtasks checks the parent, etc. (see [Subtasks](#subtasks)) |
-| Mark the note Completed when all tasks are done (タスクがすべて完了したらノートを Completed にする) | On | When every task with a due date is checked |
-| Set the note back to Active when a done task is unchecked (完了済みのタスクのチェックを外したらノートを Active に戻す) | On | The reverse of the above |
+| Link parent and subtask checkboxes | On | Checking a parent checks its subtasks, finishing all subtasks checks the parent, etc. (see [Subtasks](#subtasks)) |
+| Mark the note Completed when all its tasks are done | On | When every task with a due date is checked |
+| Set the note back to Active when a task is unchecked | On | The reverse of the above |
 
 These run only for edits made on that device: in the editor or preview while the Inkdrop window is focused, or through this plugin's views. They ignore changes that arrive via sync from other devices, so using several devices doesn't apply the same rewrite twice.
 
@@ -123,7 +123,7 @@ A task indented under another task becomes its subtask (even with plain list ite
 - Click a checkbox to toggle a task. Click a row to open the note at that task's line (the note list switches to the note's notebook)
 - Selecting another sidebar item or opening a note returns to the normal view. Back (⌘← or the ← button) from a note opened here returns to Tasks, and Back from Tasks returns to what was showing before it
 - The number in the sidebar is the count of open tasks
-- Exclude notebooks such as templates with the "notebooks to hide from the task list and Kanban" setting (タスク一覧・カンバンに出さないノートブック, comma-separated)
+- Exclude notebooks such as templates with the "Notebooks to exclude from the task views" setting (comma-separated)
 - Click the ☆ on a row or card to change the priority (click the same star again to clear it)
 - Click the ⏰ due date on a row or card (list, Kanban, matrix) to change it in the due date picker: date, time, period, reminder and priority, or remove it. On an open task without one, "⏰＋" appears on hover to add one
 
@@ -133,13 +133,13 @@ A task indented under another task becomes its subtask (even with plain list ite
 - **On Hold**: Tasks in On Hold notes are dimmed and **their notifications stop**. They resume when you set the note back to Active, etc. (anything that came due while on hold is notified once at that point, if it was within the last 12 hours)
 - **List grouping**: Switch between due date / status / note. When grouped by note, each heading shows the note title, status and notebook; click it to open the note
 
-### Note board (the "ノート" tab)
+### Note board (the "Notes" tab)
 
 A board with one card per note and one column per status.
 
 - Each card shows tags, the number of done tasks (☑ 5/12) with a progress bar, the highest priority among open tasks, the number of 🏃 tasks, and the nearest due date
 - Drag a card to another column (or use the buttons shown on hover) to change the note's status. Click a card to open the note
-- The None / Active / On Hold columns only show notes with open tasks (or a due date) left. The Completed / Dropped columns are sorted by most recently updated, with "show more" (さらに表示) for the rest
+- The None / Active / On Hold columns only show notes with open tasks (or a due date) left. The Completed / Dropped columns are sorted by most recently updated, with "Show more" for the rest
 - Only notes with tasks or a due date are included
 
 ### Kanban
@@ -157,26 +157,26 @@ Switch to Kanban at the top of Tasks to see three columns: **To do / In progress
 
 ### Eisenhower matrix
 
-Switch to マトリクス (Matrix) at the top of Tasks to sort open tasks into four quadrants, judged from the markers they already have (no new syntax):
+Switch to Matrix at the top of Tasks to sort open tasks into four quadrants, judged from the markers they already have (no new syntax):
 
 | | Urgent: overdue or due within N days | Not urgent: no due date or later |
 |---|---|---|
-| **Important: ⭐⭐ or more** | 今すぐやる (Do now) | 計画する (Plan) |
-| **Not important: fewer ⭐** | 任せる・手早く済ませる (Delegate / be quick) | やめる・後回し (Drop / later) |
+| **Important: ⭐⭐ or more** | Do now | Schedule |
+| **Not important: fewer ⭐** | Delegate / do quickly | Drop / later |
 
-- Set the thresholds in the settings: "マトリクス: 「重要」とみなす ⭐ の数" (default 2) and "マトリクス: 「緊急」とみなす期限" (days from today, default 2; 0 = today only). A period counts by its end date
+- Set the thresholds in the settings: "Matrix: ⭐ count that makes a task important" (default 2) and "Matrix: due within this many days counts as urgent" (default 2; 0 = today only). A period counts by its end date
 - Dragging a card to another quadrant rewrites the task line:
   - becoming important raises the ⭐ to the threshold; losing it lowers them to one below
   - becoming urgent moves the due date to today (an all-day one is added if there was none); losing it moves the due date to the first day after the urgent window. A period keeps its length
 - Subtasks are a checklist on the parent's card, as on the Kanban. A note's own due date (which has no ⭐) is not shown
-- ✓ 完了 on hover completes the task. Also available as the command `reminder:show-matrix`
+- ✓ Done on hover completes the task. Also available as the command `reminder:show-matrix`
 
 ### Gantt
 
 Switch to Gantt at the top of Tasks to see tasks (and notes) with a due date or period on a daily timeline.
 
 - Periods are bars and single due dates are ◆ (to do: blue / in progress: orange / overdue: red / done: green)
-- ‹ › move one week; "today" (今日) jumps back to this week. Today's column is highlighted in blue
+- ‹ › move one week; "Today" jumps back to this week. Today's column is highlighted in blue
 - Click a row or bar to open the task or note
 - **Drag bars to reschedule** (by day; the note's line is rewritten when you release)
   - Middle of a bar: move the whole period (length and times are kept)
@@ -184,7 +184,7 @@ Switch to Gantt at the top of Tasks to see tasks (and notes) with a due date or 
   - ◆ (due date only): drag to move it, or stretch its right edge to make it a period
   - A period shrunk to one day with no time turns back into a due date (◆)
   - 🔔 settings are kept
-- "Show done" (完了も表示) also shows finished items
+- "Show done" also shows finished items
 - For a note's due-date card, moving it to in progress adds `🏃` to the due-date line, and moving it to done sets the note's status to Completed (moving it back to to do / in progress sets it to Active)
 
 ### Calendar
@@ -207,6 +207,7 @@ Switch to Calendar at the top of Tasks (or press `⌘⌥Y`) to see tasks in a da
 - Tasks in notes whose status is Completed / Dropped / On Hold are not notified
 - Notifications only fire while Inkdrop is running (reminders missed while it was closed are notified at startup if they were due within the last 12 hours)
 - Desktop app only
+- **Language** setting: `auto` (default) shows the UI in Japanese if it is one of your system languages, otherwise in English; `en` / `ja` force one. The note markers (`⏰`, `🔔30m`, `⭐`, `🏃`) are the same in both languages
 
 ## Development
 
@@ -427,6 +428,7 @@ Tasks の上部で「カレンダー」に切り替える（または `⌘⌥Y`�
 - ステータスが Completed / Dropped / On Hold のノートでは、タスクの期限も通知されません
 - 通知は Inkdrop が起動している間だけ届きます（閉じていた間の分は、起動時に直近12時間以内のものを通知）
 - デスクトップ版専用です
+- **Language** 設定: 既定の `auto` はシステムの言語に日本語が含まれていれば日本語、それ以外は英語で表示します。`en` / `ja` で固定できます。ノートに書く記号（`⏰`・`🔔30m`・`⭐`・`🏃`）はどちらの言語でも同じです
 
 ## 開発
 

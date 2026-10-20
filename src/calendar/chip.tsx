@@ -1,6 +1,7 @@
 import React from 'react'
 
 import { DRAG_TYPE, type ViewContext } from './context'
+import { tr } from '../i18n'
 import { formatTime, sameDay } from './dates'
 import { isAllDayLike, isDone, type CalItem } from './items'
 
@@ -23,7 +24,7 @@ export const Chip: React.FC<{ item: CalItem; ctx: ViewContext; day?: Date }> = (
   ]
     .filter(Boolean)
     .join(' ')
-  const tip = `${item.title}\n📒 ${item.task.noteTitle}\nクリックでノートを開く・ドラッグで日付を変更`
+  const tip = `${item.title}\n📒 ${item.task.noteTitle}\n${tr('Click to open the note, drag to change the date', 'クリックでノートを開く・ドラッグで日付を変更')}`
   return (
     <div
       className={cls}
@@ -49,7 +50,7 @@ export const Chip: React.FC<{ item: CalItem; ctx: ViewContext; day?: Date }> = (
           checked={done}
           onClick={e => e.stopPropagation()}
           onChange={() => ctx.toggleDone(item)}
-          title={done ? '未完了に戻す' : '完了にする'}
+          title={done ? tr('Mark as not done', '未完了に戻す') : tr('Mark as done', '完了にする')}
         />
       ) : (
         !bar && <span className="dot-mark" />

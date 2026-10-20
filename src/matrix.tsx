@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react'
 import { toDateString, type DueInfo, type Priority } from './parse'
 import type { TaskItem } from './scheduler'
 import { nest } from './subtasks'
+import { tr } from './i18n'
 import {
   DueBadge,
   itemKey,
@@ -28,10 +29,50 @@ export interface MatrixRule {
 type Quadrant = 'do' | 'plan' | 'delegate' | 'drop'
 
 const QUADRANTS: Array<{ key: Quadrant; important: boolean; urgent: boolean; label: string; hint: string }> = [
-  { key: 'do', important: true, urgent: true, label: '今すぐやる', hint: '重要 × 緊急' },
-  { key: 'plan', important: true, urgent: false, label: '計画する', hint: '重要 × 緊急でない' },
-  { key: 'delegate', important: false, urgent: true, label: '任せる・手早く済ませる', hint: '重要でない × 緊急' },
-  { key: 'drop', important: false, urgent: false, label: 'やめる・後回し', hint: '重要でない × 緊急でない' }
+  {
+    key: 'do',
+    important: true,
+    urgent: true,
+    get label() {
+      return tr('Do now', '今すぐやる')
+    },
+    get hint() {
+      return tr('Important × urgent', '重要 × 緊急')
+    }
+  },
+  {
+    key: 'plan',
+    important: true,
+    urgent: false,
+    get label() {
+      return tr('Schedule', '計画する')
+    },
+    get hint() {
+      return tr('Important × not urgent', '重要 × 緊急でない')
+    }
+  },
+  {
+    key: 'delegate',
+    important: false,
+    urgent: true,
+    get label() {
+      return tr('Delegate / do quickly', '任せる・手早く済ませる')
+    },
+    get hint() {
+      return tr('Not important × urgent', '重要でない × 緊急')
+    }
+  },
+  {
+    key: 'drop',
+    important: false,
+    urgent: false,
+    get label() {
+      return tr('Drop / later', 'やめる・後回し')
+    },
+    get hint() {
+      return tr('Not important × not urgent', '重要でない × 緊急でない')
+    }
+  }
 ]
 
 const DRAG_TYPE = 'application/x-inkdrop-reminder-matrix'
@@ -125,23 +166,28 @@ export const Matrix: React.FC<{
   }
 
   const stars = '★'.repeat(rule.importantPriority)
-  const span = rule.urgentDays === 0 ? '今日まで' : `${rule.urgentDays}日以内`
+  const span =
+    rule.urgentDays === 0
+      ? tr('due today', '今日まで')
+      : tr(`within ${rule.urgentDays} day${rule.urgentDays === 1 ? '' : 's'}`, `${rule.urgentDays}日以内`)
 
   return (
     <div className="reminder-matrix">
       <div className="axis corner" />
       <div className="axis col">
-        緊急 <span className="rule">期限切れ・{span}</span>
+        {tr('Urgent', '緊急')} <span className="rule">{tr(`overdue · ${span}`, `期限切れ・${span}`)}</span>
       </div>
       <div className="axis col">
-        緊急でない <span className="rule">期限なし・それより先</span>
+        {tr('Not urgent', '緊急でない')} <span className="rule">{tr('no due date · later', '期限なし・それより先')}</span>
       </div>
       {QUADRANTS.map((q, i) => (
         <React.Fragment key={q.key}>
           {i % 2 === 0 && (
             <div className="axis row">
-              {q.important ? '重要' : '重要でない'}
-              <span className="rule">{q.important ? `${stars}以上` : `${stars}未満`}</span>
+              {q.important ? tr('Important', '重要') : tr('Not important', '重要でない')}
+              <span className="rule">
+                {q.important ? tr(`${stars} or more`, `${stars}以上`) : tr(`under ${stars}`, `${stars}未満`)}
+              </span>
             </div>
           )}
           <section
@@ -178,7 +224,7 @@ export const Matrix: React.FC<{
                     setDragOver(null)
                   }}
                   onClick={() => ctx.open(item)}
-                  title="クリックでタスクを開く・ドラッグで ⭐ と期限を変更"
+                  title={tr('Click to open the task, drag to change its ⭐ and due date', 'クリックでタスクを開く・ドラッグで ⭐ と期限を変更')}
                 >
                   <div className="text">{itemTitle(item)}</div>
                   <ParentLabel item={item} ctx={ctx} />
@@ -192,12 +238,12 @@ export const Matrix: React.FC<{
                   <NoteLabel item={item} ctx={ctx} link />
                   <div className="actions" onClick={e => e.stopPropagation()}>
                     <button type="button" onClick={() => ctx.move(item, 'done')}>
-                      ✓ 完了
+                      ✓ {tr('Done', '完了')}
                     </button>
                   </div>
                 </div>
               ))}
-              {cells[q.key].length === 0 && <div className="empty">ここにドラッグ</div>}
+              {cells[q.key].length === 0 && <div className="empty">{tr('Drag here', 'ここにドラッグ')}</div>}
             </div>
           </section>
         </React.Fragment>

@@ -1,6 +1,7 @@
 import React from 'react'
 
 import type { ViewContext } from './context'
+import { locale, tr } from '../i18n'
 import { monthGrid, sameDay, toDateString, weekdayLabels } from './dates'
 import { isDone } from './items'
 
@@ -16,11 +17,11 @@ export const YearView: React.FC<{ year: number; ctx: ViewContext; onShowMonth: (
       return (
         <div key={m} className="calendar-year-month">
           <button type="button" className="month-title" onClick={() => onShowMonth(month)}>
-            {m + 1}月
+            {month.toLocaleDateString(locale(), { month: 'long' })}
           </button>
           <div className="calendar-mini-grid">
-            {weekdayLabels(ctx.weekStartsOn).map(w => (
-              <span key={w} className="weekday">
+            {weekdayLabels(ctx.weekStartsOn, 'narrow').map((w, i) => (
+              <span key={i} className="weekday">
                 {w}
               </span>
             ))}
@@ -36,7 +37,14 @@ export const YearView: React.FC<{ year: number; ctx: ViewContext; onShowMonth: (
                   type="button"
                   className={cls}
                   disabled={!inMonth}
-                  title={inMonth && items.length ? `${items.length} 件\n${items.slice(0, 8).map(i => `・${i.title}`).join('\n')}` : undefined}
+                  title={
+                    inMonth && items.length
+                      ? `${tr(`${items.length} item${items.length === 1 ? '' : 's'}`, `${items.length} 件`)}\n${items
+                          .slice(0, 8)
+                          .map(i => `${tr('•', '・')} ${i.title}`)
+                          .join('\n')}`
+                      : undefined
+                  }
                   onClick={() => ctx.showDay(day)}
                 >
                   {inMonth ? day.getDate() : ''}

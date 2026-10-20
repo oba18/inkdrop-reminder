@@ -1,6 +1,7 @@
 import { jumpToAlert, setNoteDue, setNoteState, setTaskDue, setTaskState } from '../notify'
 import type { DayTime, DueInfo } from '../parse'
 import type { TaskItem as SourceItem } from '../scheduler'
+import { tr } from '../i18n'
 
 export type { DayTime }
 
@@ -34,9 +35,12 @@ export function calendarTasks(items: SourceItem[]): TaskItem[] {
     if (!t.task.due) continue
     out.push({
       key: `${t.noteId}:${t.kind === 'note' ? 'note' : t.task.line}`,
-      noteTitle: t.noteTitle || '無題のノート',
+      noteTitle: t.noteTitle || tr('Untitled note', '無題のノート'),
       kind: t.kind,
-      text: t.kind === 'note' ? t.noteTitle || '無題のノート' : plainText(t.task.text) || '（無題のタスク）',
+      text:
+        t.kind === 'note'
+          ? t.noteTitle || tr('Untitled note', '無題のノート')
+          : plainText(t.task.text) || tr('(untitled task)', '（無題のタスク）'),
       checked: t.task.checked,
       due: t.task.due,
       source: t

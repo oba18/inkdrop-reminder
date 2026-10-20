@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 
 import { Chip, dragging } from './chip'
 import { DRAG_TYPE, type ViewContext } from './context'
-import { WEEKDAYS, formatTime, sameDay, startOfDay, toDateString } from './dates'
+import { tr } from '../i18n'
+import { formatTime, sameDay, startOfDay, toDateString, weekdayName } from './dates'
 import { getConfig } from './env'
 import { isAllDayLike, isDone, layoutDay, type CalItem } from './items'
 
@@ -123,8 +124,8 @@ export const TimeGrid: React.FC<{ days: Date[]; ctx: ViewContext }> = ({ days, c
             key={toDateString(day)}
             className={`calendar-timegrid-dayhead${sameDay(day, ctx.today) ? ' today' : ''}${day.getDay() === 0 ? ' sun' : day.getDay() === 6 ? ' sat' : ''}`}
           >
-            <span className="weekday">{WEEKDAYS[day.getDay()]}</span>
-            <button type="button" className="date-number" onClick={() => ctx.showDay(day)} title="この日を表示">
+            <span className="weekday">{weekdayName(day.getDay())}</span>
+            <button type="button" className="date-number" onClick={() => ctx.showDay(day)} title={tr('Show this day', 'この日を表示')}>
               {day.getDate()}
             </button>
           </div>
@@ -132,7 +133,7 @@ export const TimeGrid: React.FC<{ days: Date[]; ctx: ViewContext }> = ({ days, c
       </div>
 
       <div className="calendar-timegrid-allday">
-        <div className="gutter">終日</div>
+        <div className="gutter">{tr('All day', '終日')}</div>
         {days.map(day => {
           const ds = toDateString(day)
           return (
