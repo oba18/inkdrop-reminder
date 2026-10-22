@@ -19,7 +19,7 @@ import {
 } from './dates'
 import type { TaskItem as SourceItem } from '../scheduler'
 import { errorMessage, getConfig, getEnv, type ViewKind } from './env'
-import { useCalendarSources, type CalendarSource } from './external'
+import { isSourceShown, useCalendarSources, type CalendarSource } from './external'
 import { compareItems, externalToItem, taskToItem, type CalItem } from './items'
 import { MonthView } from './month-view'
 import { calendarTasks, openTask, rescheduleTask, setTaskDone, type DayTime, type Due } from './tasks'
@@ -171,7 +171,7 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
     const items: CalItem[] = []
     if (ui.showTasks) for (const t of tasks) if (ui.showDone || !t.checked) items.push(taskToItem(t))
     for (const source of sources) {
-      if (ui.hiddenSources.includes(source.id)) continue
+      if (!isSourceShown(source, ui.hiddenSources)) continue
       for (const ev of source.getEvents()) {
         const item = externalToItem(ev, source)
         if (item) items.push(item)
@@ -308,6 +308,16 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
 
 /* ---- sidebar: mini month + what to show ---- */
 
+/** Sources by sidebar heading, in registration order. */
+function groupSources(sources: CalendarSource[]): Array<[string, CalendarSource[]]> {
+  const groups = new Map<string, CalendarSource[]>()
+  for (const s of sources) {
+    const key = s.group || tr('Other calendars', '他のカレンダー')
+    groups.set(key, [...(groups.get(key) ?? []), s])
+  }
+  return [...groups]
+}
+
 const Sidebar: React.FC<{
   date: Date
   today: Date
@@ -375,10 +385,10 @@ const Sidebar: React.FC<{
         </label>
       </section>
 
-      {sources.length > 0 && (
-        <section className="calendar-list">
-          <h3>{tr('Other calendars', '他のカレンダー')}</h3>
-          {sources.map(s => (
+      {groupSources(sources).map(([group, list]) => (
+        <section key={group} className="calendar-list">
+          <h3>{group}</h3>
+          {list.map(s => (
             <label
               key={s.id}
               className="calendar-list-item"
@@ -386,21 +396,24 @@ const Sidebar: React.FC<{
             >
               <input
                 type="checkbox"
-                checked={!ui.hiddenSources.includes(s.id)}
-                onChange={e =>
-                  setUi({
-                    hiddenSources: e.target.checked
-                      ? ui.hiddenSources.filter(id => id !== s.id)
-                      : [...ui.hiddenSources, s.id]
-                  })
-                }
+                checked={isSourceShown(s, ui.hiddenSources)}
+                onChange={e => {
+                  const on = e.target.checked
+                  if (s.setActive) s.setActive(on)
+                  else
+                    setUi({
+                      hiddenSources: on ? ui.hiddenSources.filter(id => id !== s.id) : [...ui.hiddenSources, s.id]
+                    })
+                }}
               />
               <span className="box" />
-              <span className="name">{s.name}</span>
+              <span className="name" title={s.name}>
+                {s.name}
+              </span>
             </label>
           ))}
         </section>
-      )}
+      ))}
 
     </aside>
   )

@@ -30,6 +30,14 @@ export interface CalendarSource {
   id: string
   name: string
   color?: string
+  /** Sidebar heading the source is listed under (e.g. its account); default "Other calendars" */
+  group?: string
+  /**
+   * For sources that load only what is shown: whether it is on, and how to turn
+   * it on or off (the sidebar checkbox). Without these the checkbox just hides it.
+   */
+  active?: boolean
+  setActive?(active: boolean): void
   getEvents(): ExternalEvent[]
   /** Calls `cb` when the events change; returns an unsubscribe function */
   onDidChange?(cb: () => void): () => void
@@ -63,6 +71,11 @@ export function clearCalendarSources() {
   for (const { unsubscribe } of sources.values()) unsubscribe?.()
   sources.clear()
   emit()
+}
+
+/** Whether the source's events are shown, given the sidebar's locally hidden ids. */
+export function isSourceShown(source: CalendarSource, hidden: string[]): boolean {
+  return source.setActive ? !!source.active : !hidden.includes(source.id)
 }
 
 /** The registered sources; re-renders when a source is added, removed or changes its events. */
