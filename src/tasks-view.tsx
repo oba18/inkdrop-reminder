@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 
 import { getConfig, getEnv, peekEnv } from './env'
-import { announcePageView, onOtherPageView } from './page-view'
+import { announcePageView, closeOnOpenNote, onOtherPageView } from './page-view'
 import { rangeSep, shortDate, tr, useLanguage } from './i18n'
 import {
   jumpToAlert,
@@ -52,9 +52,11 @@ export function setTasksViewActive(next: boolean, { keepBase = false } = {}) {
 
 const PAGE_VIEW_ID = 'reminder-tasks'
 
-/** Closes the Tasks view when another full-page view (Habits, Graph…) opens. */
+/** Closes the Tasks view when another full-page view (Habits, Graph…) opens, or a note is opened. */
 export function closeOnOtherPageView(): () => void {
-  return onOtherPageView(PAGE_VIEW_ID, () => setTasksViewActive(false))
+  const close = () => setTasksViewActive(false)
+  const stops = [onOtherPageView(PAGE_VIEW_ID, close), closeOnOpenNote(close)]
+  return () => stops.forEach(s => s())
 }
 
 function useTasksViewActive(): boolean {
