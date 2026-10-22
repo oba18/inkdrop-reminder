@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 
-import { Chip, dragging } from './chip'
+import { Chip, dragging, externalTip } from './chip'
 import { DRAG_TYPE, type ViewContext } from './context'
 import { tr } from '../i18n'
 import { formatTime, sameDay, startOfDay, toDateString, weekdayName } from './dates'
@@ -64,7 +64,8 @@ export const TimeGrid: React.FC<{ days: Date[]; ctx: ViewContext }> = ({ days, c
   }
 
   const onItemPointerDown = (item: CalItem, day: number) => (e: React.PointerEvent) => {
-    if (e.button !== 0 || (e.target as Element).closest('input')) return
+    // External events are read-only.
+    if (!item.task || e.button !== 0 || (e.target as Element).closest('input')) return
     e.stopPropagation()
     e.preventDefault()
     colsRef.current?.setPointerCapture(e.pointerId)
@@ -236,16 +237,20 @@ const TimedBlock: React.FC<{
   onMoveStart: (e: React.PointerEvent) => void
 }> = ({ item, style, ghosted, ctx, onMoveStart }) => {
   const short = item.end.getTime() - item.start.getTime() <= 30 * 60_000
-  const cls = ['calendar-block', 'task', isDone(item) && 'done', ghosted && 'ghosted', short && 'short'].filter(Boolean).join(' ')
+  const cls = ['calendar-block', item.task ? 'task' : 'external', isDone(item) && 'done', ghosted && 'ghosted', short && 'short']
+    .filter(Boolean)
+    .join(' ')
   return (
     <div
       className={cls}
       style={{ ...style, '--item-color': item.color } as React.CSSProperties}
-      title={`${item.title}\n📒 ${item.task.noteTitle}`}
+      title={item.task ? `${item.title}\n📒 ${item.task.noteTitle}` : externalTip(item)}
       onPointerDown={onMoveStart}
     >
       <div className="content">
-        <input type="checkbox" checked={isDone(item)} onChange={() => ctx.toggleDone(item)} onPointerDown={e => e.stopPropagation()} />
+        {item.task && (
+          <input type="checkbox" checked={isDone(item)} onChange={() => ctx.toggleDone(item)} onPointerDown={e => e.stopPropagation()} />
+        )}
         <span className="label">{item.title}</span>
         <span className="time">{formatTime(item.start)}</span>
       </div>

@@ -1,11 +1,12 @@
 import { DAY_MS, addDays, parseLocal, startOfDay } from './dates'
+import type { CalendarSource, ExternalEvent } from './external'
 import type { TaskItem } from './tasks'
 
 /** How long a timed task looks in the week / day views. */
 export const TASK_MINUTES = 30
 export const TASK_COLOR = 'var(--calendar-task-color)'
 
-/** A task (or note due date) placed on the calendar */
+/** A task (or note due date), or a read-only external event, placed on the calendar */
 export interface CalItem {
   key: string
   title: string
@@ -14,7 +15,32 @@ export interface CalItem {
   end: Date
   allDay: boolean
   color: string
-  task: TaskItem
+  /** Set for tasks and note due dates, which can be opened, checked and moved */
+  task?: TaskItem
+  /** Set for external events, which are read-only */
+  external?: { source: string; calendar?: string; location?: string }
+}
+
+/** Parses an external event's `YYYY-MM-DD` or `YYYY-MM-DDTHH:mm`. */
+function parseStamp(s: string): Date {
+  const [date, time] = s.split('T')
+  return parseLocal(date, time ?? null)
+}
+
+export function externalToItem(ev: ExternalEvent, source: CalendarSource): CalItem | null {
+  const start = parseStamp(ev.start)
+  let end = parseStamp(ev.end)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
+  if (end <= start) end = ev.allDay ? addDays(start, 1) : new Date(start.getTime() + TASK_MINUTES * 60_000)
+  return {
+    key: `ext:${source.id}:${ev.id}`,
+    title: ev.title,
+    start,
+    end,
+    allDay: ev.allDay,
+    color: ev.color ?? source.color ?? 'var(--color-blue-500, #4285f4)',
+    external: { source: source.name, calendar: ev.calendar, location: ev.location }
+  }
 }
 
 export function taskToItem(task: TaskItem): CalItem {
@@ -37,7 +63,7 @@ export function taskToItem(task: TaskItem): CalItem {
 }
 
 export function isDone(item: CalItem): boolean {
-  return item.task.checked
+  return item.task?.checked ?? false
 }
 
 /** Whether the item takes up any of `day`. */

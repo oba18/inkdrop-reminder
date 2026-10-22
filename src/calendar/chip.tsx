@@ -5,6 +5,14 @@ import { tr } from '../i18n'
 import { formatTime, sameDay } from './dates'
 import { isAllDayLike, isDone, type CalItem } from './items'
 
+/** Tooltip for a read-only external event. */
+export function externalTip(item: CalItem): string {
+  const ext = item.external
+  return [item.title, ext?.calendar ? `🗓 ${ext.calendar}` : `🗓 ${ext?.source ?? ''}`, ext?.location ? `📍 ${ext.location}` : '']
+    .filter(Boolean)
+    .join('\n')
+}
+
 /** Keys of the item being dragged, readable during dragover (dataTransfer isn't). */
 export const dragging: { item: CalItem | null } = { item: null }
 
@@ -12,25 +20,29 @@ export const dragging: { item: CalItem | null } = { item: null }
 export const Chip: React.FC<{ item: CalItem; ctx: ViewContext; day?: Date }> = ({ item, ctx, day }) => {
   const done = isDone(item)
   // Task periods are bars across their days.
-  const bar = isAllDayLike(item) && !!item.task.due.start
+  const task = item.task
+  // Task periods and multi-day / all-day events are bars across their days.
+  const bar = isAllDayLike(item) && (task ? !!task.due.start : true)
   const continued = !!day && bar && !sameDay(item.start, day)
   const cls = [
     'calendar-chip',
-    'task',
+    task ? 'task' : 'external',
     bar ? 'bar' : 'dot',
     done && 'done',
     continued && 'continued',
-    item.task.kind === 'note' && 'note-due'
+    task?.kind === 'note' && 'note-due'
   ]
     .filter(Boolean)
     .join(' ')
-  const tip = `${item.title}\n📒 ${item.task.noteTitle}\n${tr('Click to open the note, drag to change the date', 'クリックでノートを開く・ドラッグで日付を変更')}`
+  const tip = task
+    ? `${item.title}\n📒 ${task.noteTitle}\n${tr('Click to open the note, drag to change the date', 'クリックでノートを開く・ドラッグで日付を変更')}`
+    : externalTip(item)
   return (
     <div
       className={cls}
       style={{ '--item-color': item.color } as React.CSSProperties}
       title={tip}
-      draggable
+      draggable={!!task}
       onDragStart={e => {
         e.dataTransfer.setData(DRAG_TYPE, item.key)
         e.dataTransfer.effectAllowed = 'move'
@@ -44,7 +56,9 @@ export const Chip: React.FC<{ item: CalItem; ctx: ViewContext; day?: Date }> = (
         ctx.open(item)
       }}
     >
-      {!bar || !continued ? (
+      {!task ? (
+        !bar && <span className="dot-mark" />
+      ) : !bar || !continued ? (
         <input
           type="checkbox"
           checked={done}

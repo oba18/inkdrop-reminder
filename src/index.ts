@@ -4,6 +4,7 @@ import { AlertDialog } from './alert-dialog'
 import { pushAlert } from './alerts'
 import { DueDialog } from './due-dialog'
 import { editorDueButtons } from './editor-buttons'
+import { clearCalendarSources, registerCalendarSource } from './calendar/external'
 import { getConfig, getEnv, setEnv } from './env'
 import { languageConfig, locale, tr } from './i18n'
 import { addMenus } from './menus'
@@ -29,6 +30,12 @@ function onPreviewClick(e: MouseEvent) {
 const MAIN_LAYOUTS = ['main:full', 'main:slim']
 
 class ReminderPlugin implements IInkdropPlugin {
+  /**
+   * For other plugins: shows read-only events from another calendar next to the
+   * tasks in the Tasks view's calendar. See `CalendarSource` in calendar/external.ts.
+   */
+  registerCalendarSource = registerCalendarSource
+
   config: Record<string, ConfigSchema> = {
     notificationStyle: {
       title: tr('Notification style', '通知方法'),
@@ -271,6 +278,7 @@ class ReminderPlugin implements IInkdropPlugin {
   }
 
   deactivate(env: Environment) {
+    clearCalendarSources()
     setTasksViewActive(false)
     this.stopBackToTasks?.()
     this.stopBackToTasks = null

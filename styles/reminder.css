@@ -2642,3 +2642,9 @@ span.subtask-toggle {
 .subtask-checklist .row:hover > .due.add {
   visibility: visible;
 }
+
+/* Read-only events from other calendars (registered by other plugins). */
+.calendar-chip.external,
+.calendar-block.external {
+  cursor: default;
+}

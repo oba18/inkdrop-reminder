@@ -19,7 +19,8 @@ import {
 } from './dates'
 import type { TaskItem as SourceItem } from '../scheduler'
 import { errorMessage, getConfig, getEnv, type ViewKind } from './env'
-import { compareItems, taskToItem, type CalItem } from './items'
+import { useCalendarSources, type CalendarSource } from './external'
+import { compareItems, externalToItem, taskToItem, type CalItem } from './items'
 import { MonthView } from './month-view'
 import { calendarTasks, openTask, rescheduleTask, setTaskDone, type DayTime, type Due } from './tasks'
 import { TimeGrid } from './time-grid'
@@ -34,10 +35,12 @@ interface UiState {
   sidebar: boolean
   showTasks: boolean
   showDone: boolean
+  /** Ids of external calendar sources turned off in the sidebar */
+  hiddenSources: string[]
 }
 
 function loadUi(): UiState {
-  const base: UiState = { view: 'month', sidebar: true, showTasks: true, showDone: false }
+  const base: UiState = { view: 'month', sidebar: true, showTasks: true, showDone: false, hiddenSources: [] }
   try {
     return { ...base, ...JSON.parse(localStorage.getItem(UI_KEY) ?? '{}') }
   } catch {
@@ -122,6 +125,7 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
   const [date, setDate] = useState(() => startOfDay(new Date()))
   const [today, setToday] = useState(() => startOfDay(new Date()))
   const tasks = useMemo(() => calendarTasks(items), [items])
+  const sources = useCalendarSources()
 
   const setUi = (patch: Partial<UiState>) =>
     setUiState(s => {
@@ -166,6 +170,13 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
   const byDay = useMemo(() => {
     const items: CalItem[] = []
     if (ui.showTasks) for (const t of tasks) if (ui.showDone || !t.checked) items.push(taskToItem(t))
+    for (const source of sources) {
+      if (ui.hiddenSources.includes(source.id)) continue
+      for (const ev of source.getEvents()) {
+        const item = externalToItem(ev, source)
+        if (item) items.push(item)
+      }
+    }
     const map = new Map<string, CalItem[]>()
     const from = range.from.getTime()
     const to = range.to.getTime()
@@ -182,7 +193,7 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
     }
     for (const list of map.values()) list.sort(compareItems)
     return map
-  }, [tasks, ui.showTasks, ui.showDone, range.from.getTime(), range.to.getTime()])
+  }, [tasks, sources, ui.showTasks, ui.showDone, ui.hiddenSources, range.from.getTime(), range.to.getTime()])
 
   /* ---- actions ---- */
 
@@ -192,6 +203,7 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
   }
 
   const move = useCallback((item: CalItem, start: Date, allDay: boolean) => {
+    if (!item.task) return
     const due = item.task.due
     let next: Due
     if (due.start) {
@@ -210,10 +222,12 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
     weekStartsOn,
     itemsOn: day => byDay.get(toDateString(day)) ?? [],
     open: item => {
+      if (!item.task) return
       leave(item.task.source.noteId)
       openTask(item.task).catch(report(tr("Couldn't open the note", 'ノートを開けませんでした')))
     },
     toggleDone: item => {
+      if (!item.task) return
       setTaskDone(item.task, !item.task.checked).catch(report(tr("Couldn't update the task", 'タスクを更新できませんでした')))
     },
     move,
@@ -269,6 +283,7 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
             ui={ui}
             setUi={setUi}
             onPick={d => setDate(startOfDay(d))}
+            sources={sources}
           />
         )}
         <div className="calendar-content">
@@ -300,7 +315,8 @@ const Sidebar: React.FC<{
   ui: UiState
   setUi: (patch: Partial<UiState>) => void
   onPick: (d: Date) => void
-}> = ({ date, today, weekStartsOn, ui, setUi, onPick }) => {
+  sources: CalendarSource[]
+}> = ({ date, today, weekStartsOn, ui, setUi, onPick, sources }) => {
   const [month, setMonth] = useState(() => startOfMonth(date))
 
   useEffect(() => {
@@ -358,6 +374,33 @@ const Sidebar: React.FC<{
           <span className="name">{tr('Show completed tasks', '完了したタスクも表示')}</span>
         </label>
       </section>
+
+      {sources.length > 0 && (
+        <section className="calendar-list">
+          <h3>{tr('Other calendars', '他のカレンダー')}</h3>
+          {sources.map(s => (
+            <label
+              key={s.id}
+              className="calendar-list-item"
+              style={{ '--item-color': s.color ?? 'var(--color-blue-500, #4285f4)' } as React.CSSProperties}
+            >
+              <input
+                type="checkbox"
+                checked={!ui.hiddenSources.includes(s.id)}
+                onChange={e =>
+                  setUi({
+                    hiddenSources: e.target.checked
+                      ? ui.hiddenSources.filter(id => id !== s.id)
+                      : [...ui.hiddenSources, s.id]
+                  })
+                }
+              />
+              <span className="box" />
+              <span className="name">{s.name}</span>
+            </label>
+          ))}
+        </section>
+      )}
 
     </aside>
   )
