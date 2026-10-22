@@ -16,6 +16,20 @@ const VIEWS: Array<{ id: Mode | 'tasks'; icon: string; en: string; ja: string; k
   { id: 'calendar', icon: '📅', en: 'Calendar', ja: 'カレンダー', keywords: 'schedule 予定' }
 ]
 
+/**
+ * Whether every typed word matches: English words at the start of a word
+ * ("cal" → Calendar, not Local), Japanese anywhere (it has no spaces).
+ */
+export function matchesQuery(query: string, text: string): boolean {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean)
+  const hay = text.toLowerCase()
+  const starts = hay.split(/[\s/()・]+/)
+  return (
+    words.length > 0 &&
+    words.every(w => (/^[\x00-\x7f]+$/.test(w) ? starts.some(s => s.startsWith(w)) : hay.includes(w)))
+  )
+}
+
 /** Inkdrop's own sources, which stay first. */
 const CORE_SOURCES = ['commands', 'books', 'tags']
 
@@ -47,11 +61,7 @@ export class ViewsSource extends TelescopeSource {
 
   getItems(context: TelescopeContext): TelescopeResult {
     // Our own matching: Telescope's fuzzy filter doesn't match Japanese.
-    const words = context.query.toLowerCase().split(/\s+/).filter(Boolean)
-    const matches = (v: (typeof VIEWS)[number]) => {
-      const hay = `${v.en} ${v.ja} ${v.keywords ?? ''} tasks`.toLowerCase()
-      return words.length > 0 && words.every(w => hay.includes(w))
-    }
+    const matches = (v: (typeof VIEWS)[number]) => matchesQuery(context.query, `${v.en} ${v.ja} ${v.keywords ?? ''} tasks`)
     const options: TelescopeSourceItem[] = VIEWS.filter(matches).map(v => {
       const shown = tr(v.en, v.ja)
       return {
