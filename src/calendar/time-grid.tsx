@@ -33,7 +33,11 @@ export const TimeGrid: React.FC<{ days: Date[]; ctx: ViewContext }> = ({ days, c
   const dragRef = useRef<Drag | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [overAllDay, setOverAllDay] = useState<string | null>(null)
-  /** Where a task without a due date would land in the time grid (minutes from midnight) */
+  /**
+   * Where a task without a due date, or an all-day item from the all-day row,
+   * would land in the time grid (minutes from midnight). Timed items move by
+   * pointer drag instead.
+   */
   const [overSlot, setOverSlot] = useState<{ day: string; min: number } | null>(null)
 
   const slotAt = (e: React.DragEvent) => {
@@ -192,8 +196,7 @@ export const TimeGrid: React.FC<{ days: Date[]; ctx: ViewContext }> = ({ days, c
                   key={toDateString(day)}
                   className={`calendar-grid-col${isToday ? ' today' : ''}`}
                   onDragOver={e => {
-                    // Only tasks from the sidebar are dropped here; items move by pointer drag.
-                    if (!dragging.unscheduled) return
+                    if (!dragging.unscheduled && !dragging.item?.task) return
                     e.preventDefault()
                     const slot = { day: toDateString(day), min: slotAt(e) }
                     if (overSlot?.day !== slot.day || overSlot.min !== slot.min) setOverSlot(slot)
@@ -203,12 +206,16 @@ export const TimeGrid: React.FC<{ days: Date[]; ctx: ViewContext }> = ({ days, c
                   }}
                   onDrop={e => {
                     const task = dragging.unscheduled
-                    dragging.unscheduled = null
+                    const item = dragging.item
+                    dragging.unscheduled = dragging.item = null
                     setOverSlot(null)
-                    if (!task) return
+                    if (!task && !item?.task) return
                     e.preventDefault()
                     const min = slotAt(e)
-                    ctx.schedule(task, new Date(day.getFullYear(), day.getMonth(), day.getDate(), Math.floor(min / 60), min % 60), false)
+                    const at = new Date(day.getFullYear(), day.getMonth(), day.getDate(), Math.floor(min / 60), min % 60)
+                    // An all-day item gets this time (a period keeps its own times and moves by days).
+                    if (task) ctx.schedule(task, at, false)
+                    else ctx.move(item!, at, false)
                   }}
                 >
                   {overSlot?.day === toDateString(day) && (
@@ -216,7 +223,7 @@ export const TimeGrid: React.FC<{ days: Date[]; ctx: ViewContext }> = ({ days, c
                       className="calendar-block preview task"
                       style={{ top: overSlot.min * MIN_PX, height: 30 * MIN_PX - 2, left: 1, right: 4, '--item-color': 'var(--calendar-task-color)' } as React.CSSProperties}
                     >
-                      <span className="label">{dragging.unscheduled?.task.text}</span>
+                      <span className="label">{dragging.unscheduled?.task.text ?? dragging.item?.title}</span>
                       <span className="time">{`${Math.floor(overSlot.min / 60)}:${String(overSlot.min % 60).padStart(2, '0')}`}</span>
                     </div>
                   )}
