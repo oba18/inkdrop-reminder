@@ -202,6 +202,17 @@ Switch to Calendar at the top of Tasks (or press `⌘⌥Y`) to see tasks in a da
 - Drag to change the date (and the time in week / day views). `🔔` settings are kept. Periods move as a whole, by day
 - "Show completed tasks" on the left also shows finished ones
 
+## Shortcuts and commands
+
+| Key | Command | Opens |
+| --- | --- | --- |
+| `⌘⌥T` | `reminder:show-tasks` | Tasks (the tab you used last) |
+| | `reminder:show-list` / `show-kanban` / `show-matrix` / `show-note-board` / `show-gantt` | That tab of Tasks |
+| `⌘⌥Y` | `reminder:show-calendar` | The calendar |
+| `⌘⇧R` / `⌘⇧E` | `reminder:set-due` / `reminder:set-note-due` | The due date picker for the task at the cursor / the note |
+
+Every command is also in the command palette (`⌘K`, then type `>`) and in Plugins › Reminder.
+
 ## Notes
 
 - Tasks in notes whose status is Completed / Dropped / On Hold are not notified
@@ -422,6 +433,17 @@ Tasks の上部で「カレンダー」に切り替える（または `⌘⌥Y`�
 - チェックボックスで完了・未完了を切り替え、クリックでタスクの行を開く
 - ドラッグで日付（週・日表示では時刻も）を変更。`🔔` の設定はそのまま。期間は日単位で期間ごと移動
 - 左側の「完了したタスクも表示」で完了したものも表示
+
+## ショートカットとコマンド
+
+| キー | コマンド | 開くもの |
+| --- | --- | --- |
+| `⌘⌥T` | `reminder:show-tasks` | Tasks（最後に使ったタブ） |
+| | `reminder:show-list` / `show-kanban` / `show-matrix` / `show-note-board` / `show-gantt` | Tasks のそのタブ |
+| `⌘⌥Y` | `reminder:show-calendar` | カレンダー |
+| `⌘⇧R` / `⌘⇧E` | `reminder:set-due` / `reminder:set-note-due` | カーソルの行のタスク / ノートの期限設定 |
+
+どのコマンドもコマンドパレット（`⌘K` を押して `>` を入力）と、メニュー「Plugins › Reminder」から使えます。
 
 ## 注意
 

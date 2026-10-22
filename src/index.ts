@@ -206,6 +206,30 @@ class ReminderPlugin implements IInkdropPlugin {
         didDispatch: () => {
           if (env.isMainWindow) showTasks('matrix')
         }
+      },
+      'reminder:show-list': {
+        description: tr('Reminder: Show task list', 'Reminder: タスクをリストで表示'),
+        didDispatch: () => {
+          if (env.isMainWindow) showTasks('list')
+        }
+      },
+      'reminder:show-kanban': {
+        description: tr('Reminder: Show Kanban', 'Reminder: カンバンを表示'),
+        didDispatch: () => {
+          if (env.isMainWindow) showTasks('kanban')
+        }
+      },
+      'reminder:show-note-board': {
+        description: tr('Reminder: Show note board', 'Reminder: ノートのボードを表示'),
+        didDispatch: () => {
+          if (env.isMainWindow) showTasks('notes')
+        }
+      },
+      'reminder:show-gantt': {
+        description: tr('Reminder: Show Gantt chart', 'Reminder: ガントチャートを表示'),
+        didDispatch: () => {
+          if (env.isMainWindow) showTasks('gantt')
+        }
       }
     } as any)
     this.menus = addMenus(env)

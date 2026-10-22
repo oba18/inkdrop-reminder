@@ -2,6 +2,7 @@
   "body": {
     "cmd-shift-r": "reminder:set-due",
     "cmd-shift-e": "reminder:set-note-due",
-    "cmd-alt-y": "reminder:show-calendar"
+    "cmd-alt-y": "reminder:show-calendar",
+    "cmd-alt-t": "reminder:show-tasks"
   }
 }

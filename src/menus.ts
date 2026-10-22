@@ -23,8 +23,14 @@ export function addMenus(env: Environment): { dispose(): void } {
             { label: taskDue, command: 'reminder:set-due' },
             { label: noteDue, command: 'reminder:set-note-due' },
             { label: tr('Show Tasks', 'タスクの一覧を表示'), command: 'reminder:show-tasks' },
-            { label: tr('Show Calendar', 'カレンダーを表示'), command: 'reminder:show-calendar' },
-            { label: tr('Show Eisenhower Matrix', 'アイゼンハワーマトリクスを表示'), command: 'reminder:show-matrix' },
+            { type: 'separator' },
+            { label: tr('List', 'リスト'), command: 'reminder:show-list' },
+            { label: tr('Kanban', 'カンバン'), command: 'reminder:show-kanban' },
+            { label: tr('Eisenhower Matrix', 'マトリクス'), command: 'reminder:show-matrix' },
+            { label: tr('Note Board', 'ノート'), command: 'reminder:show-note-board' },
+            { label: tr('Gantt Chart', 'ガント'), command: 'reminder:show-gantt' },
+            { label: tr('Calendar', 'カレンダー'), command: 'reminder:show-calendar' },
+            { type: 'separator' },
             { label: tr('Show Scheduled Reminders', '登録中のリマインダーを表示'), command: 'reminder:show-status' },
             { label: tr('Send Test Notification', 'テスト通知を送る'), command: 'reminder:test-notification' }
           ]
