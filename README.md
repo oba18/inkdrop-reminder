@@ -200,6 +200,9 @@ Switch to Calendar at the top of Tasks (or press `⌘⌥Y`) to see tasks in a da
 - Tasks and notes with a due date appear on that day (no time = all day; periods are multi-day bars)
 - Toggle tasks with the checkbox; click to open the task's line
 - Drag to change the date (and the time in week / day views). `🔔` settings are kept. Periods move as a whole, by day
+- **Schedule by dragging**: the sidebar lists open tasks without a due date (highest priority first). Drop one on a day (month view or the all-day row) for an all-day due date, or on a time in the week / day view for a date and time (15-minute steps)
+- Drag an all-day item from the all-day row into the time grid to give it a time
+- Other plugins can add read-only events from another calendar (`registerCalendarSource()` on reminder's main module; see `src/calendar/external.ts`). They are listed in the sidebar, where each can be turned on or off
 - "Show completed tasks" on the left also shows finished ones
 
 ## Shortcuts and commands
@@ -434,6 +437,9 @@ Tasks の上部で「カレンダー」に切り替える（または `⌘⌥Y`�
 - 期限のあるタスク・ノートを期限の日に表示（時刻なしは終日、期間は複数日のバー）
 - チェックボックスで完了・未完了を切り替え、クリックでタスクの行を開く
 - ドラッグで日付（週・日表示では時刻も）を変更。`🔔` の設定はそのまま。期間は日単位で期間ごと移動
+- **ドラッグで期限を設定**: 左側に期限のない未完了のタスクが（優先度の高い順に）並びます。日付（月表示・終日の段）に落とすと終日の期限、週・日表示の時間帯に落とすと日付と時刻（15分刻み）が付きます
+- 終日の段の項目を時間帯にドラッグすると、時刻が付きます
+- ほかのプラグインから、別のカレンダーの予定を読み取り専用で重ねて表示できます（reminder のメインモジュールの `registerCalendarSource()`、詳しくは `src/calendar/external.ts`）。左側の一覧でカレンダーごとにオン・オフできます
 - 左側の「完了したタスクも表示」で完了したものも表示
 
 ## ショートカットとコマンド
