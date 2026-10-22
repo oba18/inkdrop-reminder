@@ -62,7 +62,9 @@ export class ViewsSource extends TelescopeSource {
         label: `${v.en} ${v.ja} ${v.keywords ?? ''} tasks`,
         displayLabel: `${v.icon} ${shown}`,
         detail: v.id === 'tasks' ? tr('The tab you used last', '最後に使ったタブ') : tr('Tasks view', 'Tasks の画面'),
-        boost: 99
+        boost: 99,
+        // Enter (core:submit) runs an item's action; without one it does nothing.
+        actions: [{ type: 'open', label: tr('Open', '開く') }]
       }
     })
     return { options, filter: false }
