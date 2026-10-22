@@ -12,6 +12,7 @@ import { NoteDueButton } from './note-due-button'
 import { showDesktopNotification } from './notify'
 import { remarkDue } from './remark-due'
 import { ReminderScheduler } from './scheduler'
+import { registerViewsSource } from './views-source'
 import { SideBarMenuItemTasks, TasksView, returnToTasksOnBack, setTasksViewActive, showTasks } from './tasks-view'
 
 /** Due badges and ⏰+ buttons in the preview open the picker for their task / the note. */
@@ -143,6 +144,7 @@ class ReminderPlugin implements IInkdropPlugin {
   private scheduler: ReminderScheduler | null = null
   private commands: { dispose(): void } | null = null
   private stopBackToTasks: (() => void) | null = null
+  private stopViewsSource: (() => void) | null = null
   private menus: { dispose(): void } | null = null
   private languageWatch: { dispose(): void } | null = null
 
@@ -179,7 +181,10 @@ class ReminderPlugin implements IInkdropPlugin {
       }
     }
 
-    if (env.isMainWindow) this.stopBackToTasks = returnToTasksOnBack()
+    if (env.isMainWindow) {
+      this.stopBackToTasks = returnToTasksOnBack()
+      this.stopViewsSource = registerViewsSource(env.telescope)
+    }
     this.commands = env.commands.add(document.body, {
       'reminder:test-notification': {
         description: tr('Reminder: Send a test notification', 'Reminder: テスト通知を送る'),
@@ -303,6 +308,8 @@ class ReminderPlugin implements IInkdropPlugin {
 
   deactivate(env: Environment) {
     clearCalendarSources()
+    this.stopViewsSource?.()
+    this.stopViewsSource = null
     setTasksViewActive(false)
     this.stopBackToTasks?.()
     this.stopBackToTasks = null

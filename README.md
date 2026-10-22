@@ -211,6 +211,8 @@ Switch to Calendar at the top of Tasks (or press `⌘⌥Y`) to see tasks in a da
 | `⌘⌥Y` | `reminder:show-calendar` | The calendar |
 | `⌘⇧R` / `⌘⇧E` | `reminder:set-due` / `reminder:set-note-due` | The due date picker for the task at the cursor / the note |
 
+**Quickest:** press `⌘K` and type the view's name — `tasks`, `calendar` (or just `cal`), `kanban`, `gantt`, `matrix`… (Japanese names such as `カレンダー` work too) — then Enter. These entries are listed above matching notes.
+
 Every command is also in the command palette (`⌘K`, then type `>`) and in Plugins › Reminder.
 
 ## Notes
@@ -442,6 +444,8 @@ Tasks の上部で「カレンダー」に切り替える（または `⌘⌥Y`�
 | | `reminder:show-list` / `show-kanban` / `show-matrix` / `show-note-board` / `show-gantt` | Tasks のそのタブ |
 | `⌘⌥Y` | `reminder:show-calendar` | カレンダー |
 | `⌘⇧R` / `⌘⇧E` | `reminder:set-due` / `reminder:set-note-due` | カーソルの行のタスク / ノートの期限設定 |
+
+**いちばん手早いのは** `⌘K` を押して画面の名前を打つ方法です。`タスク`・`カレンダー`・`カンバン`・`ガント`・`マトリクス` など（英語の `tasks`・`calendar`・`cal`・`kanban` なども可）を入力して Enter で開きます。これらは、同じ言葉を含むノートより上に表示されます。
 
 どのコマンドもコマンドパレット（`⌘K` を押して `>` を入力）と、メニュー「Plugins › Reminder」から使えます。
 
