@@ -1,4 +1,4 @@
-import { jumpToAlert, setNoteDue, setNoteState, setTaskDue, setTaskState } from '../notify'
+import { jumpToAlert, setNoteDue, setNoteState, setTaskDue, setTaskMarkers, setTaskState } from '../notify'
 import type { DayTime, DueInfo } from '../parse'
 import type { TaskItem as SourceItem } from '../scheduler'
 import { tr } from '../i18n'
@@ -47,6 +47,11 @@ export function calendarTasks(items: SourceItem[]): TaskItem[] {
     })
   }
   return out
+}
+
+/** Gives a task that has no due date one (the default reminder applies). */
+export async function scheduleTask(task: SourceItem, due: Due) {
+  await setTaskMarkers(task.noteId, task.task, { due: { ...due, reminder: { minutes: null, off: false } } })
 }
 
 /** Moves a task's due date / period; its `🔔` setting stays. */

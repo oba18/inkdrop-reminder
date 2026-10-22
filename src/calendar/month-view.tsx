@@ -37,7 +37,9 @@ export const MonthView: React.FC<{ month: Date; ctx: ViewContext }> = ({ month, 
     e.preventDefault()
     setOver(null)
     const item = dragging.item
-    dragging.item = null
+    const task = dragging.unscheduled
+    dragging.item = dragging.unscheduled = null
+    if (task) return ctx.schedule(task, day, true)
     if (!item || e.dataTransfer.getData(DRAG_TYPE) !== item.key) return
     if (sameDay(item.start, day)) return
     // Keep the time of day; only the date changes.

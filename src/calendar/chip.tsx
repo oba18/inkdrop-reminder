@@ -4,6 +4,7 @@ import { DRAG_TYPE, type ViewContext } from './context'
 import { tr } from '../i18n'
 import { formatTime, sameDay } from './dates'
 import { isAllDayLike, isDone, type CalItem } from './items'
+import type { TaskItem as SourceItem } from '../scheduler'
 
 /** Tooltip for a read-only external event. */
 export function externalTip(item: CalItem): string {
@@ -13,8 +14,11 @@ export function externalTip(item: CalItem): string {
     .join('\n')
 }
 
-/** Keys of the item being dragged, readable during dragover (dataTransfer isn't). */
-export const dragging: { item: CalItem | null } = { item: null }
+/**
+ * What is being dragged, readable during dragover (dataTransfer isn't): a calendar
+ * item, or a task without a due date from the sidebar.
+ */
+export const dragging: { item: CalItem | null; unscheduled: SourceItem | null } = { item: null, unscheduled: null }
 
 /** One line in a month cell, the all-day row, or a list. */
 export const Chip: React.FC<{ item: CalItem; ctx: ViewContext; day?: Date }> = ({ item, ctx, day }) => {

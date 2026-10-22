@@ -33,6 +33,13 @@ export const TimeGrid: React.FC<{ days: Date[]; ctx: ViewContext }> = ({ days, c
   const dragRef = useRef<Drag | null>(null)
   const [now, setNow] = useState(() => new Date())
   const [overAllDay, setOverAllDay] = useState<string | null>(null)
+  /** Where a task without a due date would land in the time grid (minutes from midnight) */
+  const [overSlot, setOverSlot] = useState<{ day: string; min: number } | null>(null)
+
+  const slotAt = (e: React.DragEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    return Math.max(0, Math.min(24 * 60 - SNAP_MIN, snap((e.clientY - rect.top) / MIN_PX - SNAP_MIN / 2)))
+  }
   dragRef.current = drag
 
   useEffect(() => {
@@ -106,7 +113,9 @@ export const TimeGrid: React.FC<{ days: Date[]; ctx: ViewContext }> = ({ days, c
     e.preventDefault()
     setOverAllDay(null)
     const item = dragging.item
-    dragging.item = null
+    const task = dragging.unscheduled
+    dragging.item = dragging.unscheduled = null
+    if (task) return ctx.schedule(task, startOfDay(day), true)
     if (!item || e.dataTransfer.getData(DRAG_TYPE) !== item.key) return
     if (item.allDay && sameDay(item.start, day)) return
     ctx.move(item, startOfDay(day), true)
@@ -179,7 +188,38 @@ export const TimeGrid: React.FC<{ days: Date[]; ctx: ViewContext }> = ({ days, c
               const placed = layoutDay(timedOn(day), day)
               const isToday = sameDay(day, now)
               return (
-                <div key={toDateString(day)} className={`calendar-grid-col${isToday ? ' today' : ''}`}>
+                <div
+                  key={toDateString(day)}
+                  className={`calendar-grid-col${isToday ? ' today' : ''}`}
+                  onDragOver={e => {
+                    // Only tasks from the sidebar are dropped here; items move by pointer drag.
+                    if (!dragging.unscheduled) return
+                    e.preventDefault()
+                    const slot = { day: toDateString(day), min: slotAt(e) }
+                    if (overSlot?.day !== slot.day || overSlot.min !== slot.min) setOverSlot(slot)
+                  }}
+                  onDragLeave={e => {
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverSlot(null)
+                  }}
+                  onDrop={e => {
+                    const task = dragging.unscheduled
+                    dragging.unscheduled = null
+                    setOverSlot(null)
+                    if (!task) return
+                    e.preventDefault()
+                    const min = slotAt(e)
+                    ctx.schedule(task, new Date(day.getFullYear(), day.getMonth(), day.getDate(), Math.floor(min / 60), min % 60), false)
+                  }}
+                >
+                  {overSlot?.day === toDateString(day) && (
+                    <div
+                      className="calendar-block preview task"
+                      style={{ top: overSlot.min * MIN_PX, height: 30 * MIN_PX - 2, left: 1, right: 4, '--item-color': 'var(--calendar-task-color)' } as React.CSSProperties}
+                    >
+                      <span className="label">{dragging.unscheduled?.task.text}</span>
+                      <span className="time">{`${Math.floor(overSlot.min / 60)}:${String(overSlot.min % 60).padStart(2, '0')}`}</span>
+                    </div>
+                  )}
                   {Array.from({ length: 24 }, (_, h) => (
                     <div key={h} className="hour-line" style={{ top: h * HOUR_PX }} />
                   ))}

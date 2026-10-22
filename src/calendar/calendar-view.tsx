@@ -22,7 +22,9 @@ import { errorMessage, getConfig, getEnv, type ViewKind } from './env'
 import { isSourceShown, useCalendarSources, type CalendarSource } from './external'
 import { compareItems, externalToItem, taskToItem, type CalItem } from './items'
 import { MonthView } from './month-view'
-import { calendarTasks, openTask, rescheduleTask, setTaskDone, type DayTime, type Due } from './tasks'
+import { calendarTasks, openTask, rescheduleTask, scheduleTask, setTaskDone, type DayTime, type Due } from './tasks'
+import { dragging } from './chip'
+import { DRAG_TYPE } from './context'
 import { TimeGrid } from './time-grid'
 import { YearView } from './year-view'
 
@@ -126,6 +128,14 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
   const [today, setToday] = useState(() => startOfDay(new Date()))
   const tasks = useMemo(() => calendarTasks(items), [items])
   const sources = useCalendarSources()
+  /** Open tasks without a due date, to drag onto the calendar (highest priority first) */
+  const unscheduled = useMemo(
+    () =>
+      items
+        .filter(t => t.kind === 'task' && !t.task.due && !t.task.checked)
+        .sort((a, b) => b.task.priority - a.task.priority),
+    [items]
+  )
 
   const setUi = (patch: Partial<UiState>) =>
     setUiState(s => {
@@ -231,6 +241,11 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
       setTaskDone(item.task, !item.task.checked).catch(report(tr("Couldn't update the task", 'タスクを更新できませんでした')))
     },
     move,
+    schedule: (task, start, allDay) => {
+      scheduleTask(task, { date: toDateString(start), time: allDay ? null : toTimeString(start), start: null }).catch(
+        report(tr("Couldn't set the due date", '期限を設定できませんでした'))
+      )
+    },
     showDay: day => {
       setDate(startOfDay(day))
       setUi({ view: 'day' })
@@ -284,6 +299,7 @@ export const CalendarPanel: React.FC<{ items: SourceItem[]; leave: (noteId: stri
             setUi={setUi}
             onPick={d => setDate(startOfDay(d))}
             sources={sources}
+            unscheduled={unscheduled}
           />
         )}
         <div className="calendar-content">
@@ -326,7 +342,8 @@ const Sidebar: React.FC<{
   setUi: (patch: Partial<UiState>) => void
   onPick: (d: Date) => void
   sources: CalendarSource[]
-}> = ({ date, today, weekStartsOn, ui, setUi, onPick, sources }) => {
+  unscheduled: SourceItem[]
+}> = ({ date, today, weekStartsOn, ui, setUi, onPick, sources, unscheduled }) => {
   const [month, setMonth] = useState(() => startOfMonth(date))
 
   useEffect(() => {
@@ -384,6 +401,35 @@ const Sidebar: React.FC<{
           <span className="name">{tr('Show completed tasks', '完了したタスクも表示')}</span>
         </label>
       </section>
+
+      {unscheduled.length > 0 && (
+        <section className="calendar-list calendar-unscheduled">
+          <h3 title={tr('Drag onto a day or time to set the due date', '日付や時刻の上にドラッグすると期限を設定します')}>
+            {tr('No due date', '期限なしのタスク')} <span className="count">{unscheduled.length}</span>
+          </h3>
+          <div className="calendar-unscheduled-list">
+            {unscheduled.slice(0, 100).map(t => (
+              <div
+                key={`${t.noteId}:${t.task.line}`}
+                className="calendar-unscheduled-item"
+                draggable
+                title={`${t.task.text}\n📒 ${t.noteTitle}\n${tr('Drag onto the calendar to set the due date', 'カレンダーにドラッグすると期限を設定します')}`}
+                onDragStart={e => {
+                  e.dataTransfer.setData(DRAG_TYPE, `unscheduled:${t.noteId}:${t.task.line}`)
+                  e.dataTransfer.effectAllowed = 'move'
+                  dragging.unscheduled = t
+                }}
+                onDragEnd={() => {
+                  dragging.unscheduled = null
+                }}
+              >
+                {t.task.priority > 0 && <span className="stars">{'★'.repeat(t.task.priority)}</span>}
+                <span className="text">{t.task.text}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {groupSources(sources).map(([group, list]) => (
         <section key={group} className="calendar-list">

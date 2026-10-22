@@ -2648,3 +2648,49 @@ span.subtask-toggle {
 .calendar-block.external {
   cursor: default;
 }
+
+/* Tasks without a due date, dragged onto the calendar to schedule them. */
+.calendar-unscheduled h3 .count {
+  font-weight: normal;
+  opacity: 0.6;
+}
+
+.calendar-unscheduled-list {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.calendar-unscheduled-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 2px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: grab;
+  background: color-mix(in srgb, var(--calendar-task-color) 12%, transparent);
+  border-left: 3px solid var(--calendar-task-color);
+
+  .text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .stars {
+    flex: 0 0 auto;
+    font-size: 10px;
+    color: var(--color-yellow-500, #e0b000);
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--calendar-task-color) 22%, transparent);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}

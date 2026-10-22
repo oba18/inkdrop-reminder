@@ -1,4 +1,5 @@
 import type { CalItem } from './items'
+import type { TaskItem as SourceItem } from '../scheduler'
 
 /** What every view needs from the calendar shell. */
 export interface ViewContext {
@@ -11,6 +12,8 @@ export interface ViewContext {
   toggleDone(item: CalItem): void
   /** Reschedules a task to `start` (all day, or at its time) */
   move(item: CalItem, start: Date, allDay: boolean): void
+  /** Gives a task without a due date one: all day on `start`'s date, or at its time */
+  schedule(task: SourceItem, start: Date, allDay: boolean): void
   /** Switches to the day view of `day` */
   showDay(day: Date): void
 }
